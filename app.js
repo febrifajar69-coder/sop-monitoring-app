@@ -4022,13 +4022,12 @@ function renderKabengWeeklyReport() {
   // 3. Filter khusus order yang SELURUH item part-nya SUDAH LENGKAP DATANG (allItemsArrived === true)
   const completeOrders = allGroups.filter((g) => g.allItemsArrived);
 
-  // 4. Siapkan struktur baris SA sesuai gambar referensi: TJS, WSH, AJS, AYU, FIK, WBN, TWC, OTHER
-  const standardSas = ['TJS', 'WSH', 'AJS', 'AYU', 'FIK', 'WBN', 'TWC', 'OTHER'];
-  const extraSas = new Set();
+  // 4. Baris SA disamakan dengan menu Monitoring SOP: AJS, AYU, FIK, WBN, OTHERS
+  const allSas = ['AJS', 'AYU', 'FIK', 'WBN', 'OTHERS'];
 
   // Matriks data: cellOrders[sa][weekIndex] = [grp1, grp2, ...]
   const cellOrders = {};
-  standardSas.forEach((sa) => {
+  allSas.forEach((sa) => {
     cellOrders[sa] = { 1: [], 2: [], 3: [], 4: [], 5: [] };
   });
 
@@ -4054,38 +4053,16 @@ function renderKabengWeeklyReport() {
     const targetWeek = weeks.find((w) => w.startDay !== null && day >= w.startDay && day <= w.endDay);
     if (!targetWeek) return;
 
-    // Tentukan SA tujuan
-    let saRow = 'OTHER';
+    // Tentukan SA tujuan (AJS, AYU, FIK, WBN, atau OTHERS)
+    let saRow = 'OTHERS';
     const sheet = (grp.sheetName || '').toUpperCase();
-    if (sheet === 'OTHER') {
-      const pic = (grp.saPic || '').trim().toUpperCase();
-      if (standardSas.includes(pic)) {
-        saRow = pic;
-      } else if (pic && pic !== 'SA' && pic !== 'PIC') {
-        saRow = pic;
-        extraSas.add(pic);
-      } else {
-        saRow = 'OTHER';
-      }
-    } else {
+    if (sheet === 'AJS' || sheet === 'AYU' || sheet === 'FIK' || sheet === 'WBN') {
       saRow = sheet;
+    } else {
+      saRow = 'OTHERS';
     }
 
-    if (!cellOrders[saRow]) {
-      cellOrders[saRow] = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-    }
     cellOrders[saRow][targetWeek.index].push(grp);
-  });
-
-  // Susun daftar SA final (Standard SA + jika ada SA manual lain sebelum OTHER)
-  const allSas = [];
-  standardSas.forEach((s) => {
-    if (s === 'OTHER') {
-      extraSas.forEach((extra) => {
-        if (!standardSas.includes(extra)) allSas.push(extra);
-      });
-    }
-    allSas.push(s);
   });
 
   // Simpan ke cache untuk keperluan modal detail & salin ke clipboard
