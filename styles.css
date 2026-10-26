@@ -1306,6 +1306,120 @@ body {
   margin-top: 2px;
 }
 
+/* ============================================================================
+ * LAPORAN MINGGUAN KABENG (MATRIX TABLE PERFORMA SA PER WEEK W1 - W5)
+ * ============================================================================ */
+.kabeng-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.88rem;
+  background: #ffffff;
+}
+
+.kabeng-matrix-table th,
+.kabeng-matrix-table td {
+  border: 1.5px solid #000000;
+  padding: 7px 10px;
+  vertical-align: middle;
+}
+
+/* Header Hijau PART SOP persis seperti Excel referensi */
+.kabeng-header-green {
+  background-color: #00ff00 !important;
+  color: #000000 !important;
+  font-weight: 900 !important;
+  text-align: center;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  padding: 10px !important;
+}
+
+/* Header Pekan W1, W2, W3, W4, W5 */
+.kabeng-header-week {
+  background-color: #ffffff;
+  color: #000000;
+  font-weight: 800;
+  text-align: center;
+  font-size: 0.92rem;
+}
+
+/* Sub-header UNIT dan OMZET */
+.kabeng-sub-header {
+  background-color: #ffffff;
+  color: #000000;
+  font-weight: 800;
+  text-align: center;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+}
+
+/* Kolom SA */
+.kabeng-sa-cell {
+  background-color: #ffffff;
+  font-weight: 800;
+  color: #000000;
+  text-align: center;
+  min-width: 85px;
+  font-size: 0.9rem;
+}
+
+/* Sel Angka Unit */
+.kabeng-unit-cell {
+  text-align: center;
+  font-weight: 700;
+  color: #000000;
+  min-width: 50px;
+}
+
+/* Sel Angka Omzet */
+.kabeng-omzet-cell {
+  text-align: right;
+  font-weight: 600;
+  color: #000000;
+  min-width: 110px;
+  font-family: Arial, sans-serif;
+}
+
+/* Alert Sel Kuning (#ffff00) saat 0 Unit / 0 Omzet */
+.kabeng-cell-zero {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+}
+
+/* Baris TOTAL di bagian bawah */
+.kabeng-total-row th,
+.kabeng-total-row td {
+  background-color: #ffffff;
+  font-weight: 900;
+  color: #000000;
+  border-top: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+}
+
+/* Baris Cutoff Tanggal di bawah tabel */
+.kabeng-date-cutoff-row td {
+  background-color: #ffffff;
+  font-weight: 700;
+  text-align: center;
+  font-size: 0.82rem;
+  color: #000000;
+  border: 1.5px solid #000000;
+}
+
+/* Cell Clickable */
+.kabeng-clickable-cell {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.kabeng-clickable-cell:hover {
+  background-color: #e0f2fe !important;
+  color: #0284c7 !important;
+  text-decoration: underline;
+}
+
 .sop-footer-label {
   text-align: right;
   font-weight: 700;

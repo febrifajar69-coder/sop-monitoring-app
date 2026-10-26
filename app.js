@@ -4,12 +4,15 @@
  */
 
 const STATE = {
-  mainTab: 'partman', // 'partman' | 'monitoring' | 'email' | 'users'
+  mainTab: 'partman', // 'partman' | 'monitoring' | 'kabeng_report' | 'email' | 'users'
   activeSaSheet: 'AJS', // 'AJS' | 'AYU' | 'FIK' | 'WBN' | 'OTHER'
   previewMode: 'both', // 'both' | 'lembar1' | 'lembar2'
   apiUrl: '',
   isSyncing: false,
   currentUser: null,
+  kabengReportMonth: new Date().getMonth(),
+  kabengReportYear: new Date().getFullYear(),
+  kabengReportCache: {},
   users: [
     { username: 'febri', password: 'admin123', name: 'Febri Rahmdani (FEB)', role: 'ADMIN_PARTMAN', roleName: 'Admin & Partman' },
     { username: 'kabeng', password: 'kabeng123', name: 'Kepala Bengkel', role: 'KABENG', roleName: 'Kepala Bengkel' },
@@ -94,7 +97,10 @@ function initApp() {
   renderSaEmailsTable();
   fetchEmailSettingsFromServer(false);
 
-  // 6b. Inisialisasi Autentikasi Pengguna & Sesi Login
+  // 6b. Inisialisasi Kontrol Laporan Mingguan Kabeng
+  initKabengReportControls();
+
+  // 6c. Inisialisasi Autentikasi Pengguna & Sesi Login
   initAuth();
 
   // 7. Tarik data live dari Spreadsheet Monitoring (AJS, AYU, FIK, WBN, OTHER)
@@ -167,6 +173,7 @@ function getUserPermissions(user) {
       canFormOrder: false,
       canMonitoring: true,
       canEditMonitoring: false,
+      canKabengReport: false,
       canEmailSettings: false,
       canUserManagement: false,
       canScriptApi: false,
@@ -190,6 +197,7 @@ function getUserPermissions(user) {
       canFormOrder: true,
       canMonitoring: true,
       canEditMonitoring: true,
+      canKabengReport: true,
       canEmailSettings: true,
       canUserManagement: true,
       canScriptApi: true,
@@ -203,6 +211,7 @@ function getUserPermissions(user) {
       canFormOrder: true,
       canMonitoring: true,
       canEditMonitoring: true,
+      canKabengReport: false,
       canEmailSettings: false,
       canUserManagement: false,
       canScriptApi: false,
@@ -210,13 +219,28 @@ function getUserPermissions(user) {
     };
   }
 
-  // 3. Akun KABENG (and / I Nengah Andika) & Role SA (ajs, ayu, fik, wbn, other):
-  // Fungsi sama persis: Monitoring SOP saja (bisa edit & akses semua sheet SA). Menu selain Monitoring SOP tidak bisa diakses.
+  // 3. Akun KABENG (and / I Nengah Andika): Monitoring SOP & Laporan Mingguan Kabeng
   if (
     u === 'and' ||
     u === 'kabeng' ||
     role === 'KABENG' ||
-    role.includes('KEPALA') ||
+    role.includes('KEPALA')
+  ) {
+    return {
+      canFormOrder: false,
+      canMonitoring: true,
+      canEditMonitoring: true,
+      canKabengReport: true,
+      canEmailSettings: false,
+      canUserManagement: false,
+      canScriptApi: false,
+      isViewerOnly: false
+    };
+  }
+
+  // 4. Role SA (ajs, ayu, fik, wbn, other):
+  // Monitoring SOP saja (bisa edit & akses semua sheet SA). Menu selain Monitoring SOP tidak bisa diakses.
+  if (
     role.startsWith('SA_') ||
     role === 'SA' ||
     ['ajs', 'ayu', 'fik', 'wbn', 'other', 'sa_ajs', 'sa_ayu', 'sa_fik', 'sa_wbn', 'sa_other'].includes(u)
@@ -225,6 +249,7 @@ function getUserPermissions(user) {
       canFormOrder: false,
       canMonitoring: true,
       canEditMonitoring: true,
+      canKabengReport: false,
       canEmailSettings: false,
       canUserManagement: false,
       canScriptApi: false,
@@ -237,6 +262,7 @@ function getUserPermissions(user) {
     canFormOrder: false,
     canMonitoring: true,
     canEditMonitoring: false,
+    canKabengReport: false,
     canEmailSettings: false,
     canUserManagement: false,
     canScriptApi: false,
@@ -260,6 +286,12 @@ function applyUserRolePermissions() {
   const btnMonitoring = document.getElementById('tabBtnMonitoring');
   if (btnMonitoring) {
     btnMonitoring.style.display = perm.canMonitoring ? 'flex' : 'none';
+  }
+
+  // 2B. Menu Laporan Mingguan Kabeng di Drawer
+  const btnKabeng = document.getElementById('tabBtnKabengReport');
+  if (btnKabeng) {
+    btnKabeng.style.display = perm.canKabengReport ? 'flex' : 'none';
   }
 
   // 3. Menu Pengaturan Email di Drawer
@@ -297,6 +329,8 @@ function applyUserRolePermissions() {
   // 7. Pengalihan otomatis jika tab saat ini tidak diizinkan
   if (STATE.mainTab === 'partman' && !perm.canFormOrder) {
     switchMainTab('monitoring');
+  } else if (STATE.mainTab === 'kabeng_report' && !perm.canKabengReport) {
+    switchMainTab('monitoring');
   } else if (STATE.mainTab === 'email' && !perm.canEmailSettings) {
     switchMainTab('monitoring');
   } else if (STATE.mainTab === 'users' && !perm.canUserManagement) {
@@ -305,12 +339,16 @@ function applyUserRolePermissions() {
 }
 
 /**
- * Navigasi Tab Utama (Partman vs Monitoring SA vs Pengaturan Email SA)
+ * Navigasi Tab Utama (Partman vs Monitoring SA vs Laporan Kabeng vs Pengaturan Email SA)
  */
 function switchMainTab(tab) {
   const perm = getUserPermissions(STATE.currentUser);
   if (tab === 'partman' && !perm.canFormOrder) {
     showToast('⚠️ Akses terbatas: Akun Anda tidak memiliki izin untuk membuka Form Order.', true);
+    return;
+  }
+  if (tab === 'kabeng_report' && !perm.canKabengReport) {
+    showToast('⚠️ Akses terbatas: Menu Laporan Mingguan hanya dapat diakses oleh Kepala Bengkel (Kabeng) dan Admin.', true);
     return;
   }
   if (tab === 'email' && !perm.canEmailSettings) {
@@ -325,21 +363,25 @@ function switchMainTab(tab) {
   STATE.mainTab = tab;
   const secPartman = document.getElementById('sectionPartman');
   const secMonitoring = document.getElementById('sectionMonitoring');
+  const secKabeng = document.getElementById('sectionKabengReport');
   const secEmail = document.getElementById('sectionEmailSettings');
   const secUsers = document.getElementById('sectionUsers');
   const btnPartman = document.getElementById('tabBtnPartman');
   const btnMonitoring = document.getElementById('tabBtnMonitoring');
+  const btnKabeng = document.getElementById('tabBtnKabengReport');
   const btnEmail = document.getElementById('tabBtnEmail');
   const btnUsers = document.getElementById('tabBtnUsers');
   const subtitleEl = document.getElementById('activeMenuHeaderSubtitle');
 
   secPartman.classList.toggle('hidden', tab !== 'partman');
   secMonitoring.classList.toggle('hidden', tab !== 'monitoring');
+  if (secKabeng) secKabeng.classList.toggle('hidden', tab !== 'kabeng_report');
   if (secEmail) secEmail.classList.toggle('hidden', tab !== 'email');
   if (secUsers) secUsers.classList.toggle('hidden', tab !== 'users');
 
   if (btnPartman) btnPartman.classList.toggle('active', tab === 'partman');
   if (btnMonitoring) btnMonitoring.classList.toggle('active', tab === 'monitoring');
+  if (btnKabeng) btnKabeng.classList.toggle('active', tab === 'kabeng_report');
   if (btnEmail) btnEmail.classList.toggle('active', tab === 'email');
   if (btnUsers) btnUsers.classList.toggle('active', tab === 'users');
 
@@ -348,6 +390,8 @@ function switchMainTab(tab) {
       subtitleEl.textContent = 'Form Special Order Part';
     } else if (tab === 'monitoring') {
       subtitleEl.textContent = `Monitoring SOP — ${STATE.activeSaSheet}`;
+    } else if (tab === 'kabeng_report') {
+      subtitleEl.textContent = 'Laporan Mingguan Kabeng — Unit & Omzet Lengkap Tiap SA';
     } else if (tab === 'email') {
       subtitleEl.textContent = 'Pengaturan Email SA & Reminder H+7';
     } else if (tab === 'users') {
@@ -360,6 +404,8 @@ function switchMainTab(tab) {
   } else if (tab === 'monitoring') {
     renderMonitoringList();
     checkAndShowNotFixPopup(false);
+  } else if (tab === 'kabeng_report') {
+    renderKabengWeeklyReport();
   } else if (tab === 'email') {
     renderSaEmailsTable();
   } else if (tab === 'users') {
@@ -1311,6 +1357,9 @@ async function fetchAllMonitoringSheets(showNotification) {
     mergeLocalOrdersIntoSheets();
     updateSaTabBadges();
     renderMonitoringList();
+    if (STATE.mainTab === 'kabeng_report') {
+      renderKabengWeeklyReport();
+    }
     checkAndShowNotFixPopup(false);
     STATE.isSyncing = false;
     updateSyncBadge();
@@ -3818,5 +3867,624 @@ async function fetchUsersFromServer(showToastMsg) {
       if (showToastMsg) showToast('✅ Daftar pengguna berhasil diperbarui dari server.');
     }
   } catch (err) {}
+}
+
+/* ============================================================================
+ * LAPORAN MINGGUAN KABENG (MONITORING UNIT & OMZET TIAP SA PER MINGGU W1 - W5)
+ * ============================================================================ */
+
+const FULL_MONTHS_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+function initKabengReportControls() {
+  const mSelect = document.getElementById('kabengMonthSelect');
+  const ySelect = document.getElementById('kabengYearSelect');
+  if (mSelect) mSelect.value = String(STATE.kabengReportMonth);
+  if (ySelect) ySelect.value = String(STATE.kabengReportYear);
+}
+
+function handleKabengFilterChange() {
+  const mSelect = document.getElementById('kabengMonthSelect');
+  const ySelect = document.getElementById('kabengYearSelect');
+  if (mSelect) STATE.kabengReportMonth = parseInt(mSelect.value, 10);
+  if (ySelect) STATE.kabengReportYear = parseInt(ySelect.value, 10);
+  renderKabengWeeklyReport();
+}
+
+function changeKabengReportMonth(delta) {
+  let m = STATE.kabengReportMonth + delta;
+  let y = STATE.kabengReportYear;
+  if (m < 0) {
+    m = 11;
+    y -= 1;
+  } else if (m > 11) {
+    m = 0;
+    y += 1;
+  }
+  STATE.kabengReportMonth = m;
+  STATE.kabengReportYear = y;
+  initKabengReportControls();
+  renderKabengWeeklyReport();
+}
+
+function resetKabengReportToCurrentMonth() {
+  const now = new Date();
+  STATE.kabengReportMonth = now.getMonth();
+  STATE.kabengReportYear = now.getFullYear();
+  initKabengReportControls();
+  renderKabengWeeklyReport();
+}
+
+/**
+ * Menghitung batas tanggal W1 - W5 untuk bulan & tahun terpilih
+ * Sesuai cutoff minggu hari Minggu standar bengkel Toyota (seperti referensi gambar W1..W5: 1 Okt, 4 Okt, 11 Okt, 18 Okt, 25 Okt)
+ */
+function getWeeksForMonth(year, monthIndex) {
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const monthName = SHORT_MONTHS_ID[monthIndex];
+
+  // Temukan semua hari Minggu dalam bulan ini
+  const sundays = [];
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, monthIndex, day);
+    if (d.getDay() === 0) { // 0 = Minggu
+      sundays.push(day);
+    }
+  }
+
+  const weeks = [];
+
+  // W1 selalu mulai dari tanggal 1
+  let startW1 = 1;
+  let endW1;
+  if (sundays.length > 0 && sundays[0] === 1) {
+    endW1 = Math.min(7, daysInMonth);
+  } else if (sundays.length > 0) {
+    endW1 = sundays[0] - 1;
+  } else {
+    endW1 = daysInMonth;
+  }
+
+  weeks.push({
+    index: 1,
+    key: 'W1',
+    startDay: startW1,
+    endDay: endW1,
+    startLabel: `${startW1} ${monthName}`,
+    dateRangeLabel: `${startW1} - ${endW1} ${monthName}`
+  });
+
+  let currentStart = endW1 + 1;
+  for (let w = 2; w <= 5; w++) {
+    if (currentStart > daysInMonth) {
+      weeks.push({
+        index: w,
+        key: `W${w}`,
+        startDay: null,
+        endDay: null,
+        startLabel: `-`,
+        dateRangeLabel: `-`
+      });
+      continue;
+    }
+
+    let endDay;
+    const nextSunday = sundays.find((s) => s > currentStart);
+    if (nextSunday && w < 5) {
+      endDay = nextSunday - 1;
+    } else {
+      endDay = Math.min(currentStart + 6, daysInMonth);
+      if (w === 5) {
+        endDay = daysInMonth;
+      }
+    }
+
+    if (endDay < currentStart) endDay = currentStart;
+
+    weeks.push({
+      index: w,
+      key: `W${w}`,
+      startDay: currentStart,
+      endDay: endDay,
+      startLabel: `${currentStart} ${monthName}`,
+      dateRangeLabel: `${currentStart} - ${endDay} ${monthName}`
+    });
+
+    currentStart = endDay + 1;
+  }
+
+  return weeks;
+}
+
+/**
+ * Merender tabel matriks Laporan Mingguan Kabeng persis seperti gambar Excel referensi
+ */
+function renderKabengWeeklyReport() {
+  const tableEl = document.getElementById('kabengMatrixTable');
+  if (!tableEl) return;
+
+  const year = STATE.kabengReportYear;
+  const month = STATE.kabengReportMonth;
+  const monthName = SHORT_MONTHS_ID[month];
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const weeks = getWeeksForMonth(year, month);
+
+  // 1. Kumpulkan semua raw items dari seluruh sheet monitoring
+  const allRawItems = [];
+  const saSheets = (window.SOP_CONFIG && window.SOP_CONFIG.SA_SHEETS) || ['AJS', 'AYU', 'FIK', 'WBN', 'OTHER'];
+  saSheets.forEach((sa) => {
+    const list = STATE.monitoringBySheet[sa] || [];
+    allRawItems.push(...list);
+  });
+
+  // 2. Kelompokkan menjadi grup NOPOL
+  const allGroups = groupMonitoringItemsByOrder(allRawItems);
+
+  // 3. Filter khusus order yang SELURUH item part-nya SUDAH LENGKAP DATANG (allItemsArrived === true)
+  const completeOrders = allGroups.filter((g) => g.allItemsArrived);
+
+  // 4. Siapkan struktur baris SA sesuai gambar referensi: TJS, WSH, AJS, AYU, FIK, WBN, TWC, OTHER
+  const standardSas = ['TJS', 'WSH', 'AJS', 'AYU', 'FIK', 'WBN', 'TWC', 'OTHER'];
+  const extraSas = new Set();
+
+  // Matriks data: cellOrders[sa][weekIndex] = [grp1, grp2, ...]
+  const cellOrders = {};
+  standardSas.forEach((sa) => {
+    cellOrders[sa] = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+  });
+
+  // 5. Masukkan order lengkap ke dalam sel (SA, Week) sesuai tanggal selesai / ATA
+  completeOrders.forEach((grp) => {
+    let compDate = null;
+    if (grp.fullAtaTimestamp && grp.fullAtaTimestamp !== Infinity) {
+      compDate = new Date(grp.fullAtaTimestamp);
+    } else if (grp.ata) {
+      compDate = parseFlexibleDateToObj(grp.ata, year);
+    } else if (grp.orderDate) {
+      compDate = parseFlexibleDateToObj(grp.orderDate, year);
+    }
+
+    if (!compDate) return;
+
+    // Periksa apakah order selesai pada bulan & tahun yang dipilih
+    if (compDate.getFullYear() !== year || compDate.getMonth() !== month) {
+      return;
+    }
+
+    const day = compDate.getDate();
+    const targetWeek = weeks.find((w) => w.startDay !== null && day >= w.startDay && day <= w.endDay);
+    if (!targetWeek) return;
+
+    // Tentukan SA tujuan
+    let saRow = 'OTHER';
+    const sheet = (grp.sheetName || '').toUpperCase();
+    if (sheet === 'OTHER') {
+      const pic = (grp.saPic || '').trim().toUpperCase();
+      if (standardSas.includes(pic)) {
+        saRow = pic;
+      } else if (pic && pic !== 'SA' && pic !== 'PIC') {
+        saRow = pic;
+        extraSas.add(pic);
+      } else {
+        saRow = 'OTHER';
+      }
+    } else {
+      saRow = sheet;
+    }
+
+    if (!cellOrders[saRow]) {
+      cellOrders[saRow] = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+    }
+    cellOrders[saRow][targetWeek.index].push(grp);
+  });
+
+  // Susun daftar SA final (Standard SA + jika ada SA manual lain sebelum OTHER)
+  const allSas = [];
+  standardSas.forEach((s) => {
+    if (s === 'OTHER') {
+      extraSas.forEach((extra) => {
+        if (!standardSas.includes(extra)) allSas.push(extra);
+      });
+    }
+    allSas.push(s);
+  });
+
+  // Simpan ke cache untuk keperluan modal detail & salin ke clipboard
+  STATE.kabengReportCache = {
+    year,
+    month,
+    weeks,
+    allSas,
+    cellOrders
+  };
+
+  // 6. Hitung Total per Pekan (Kolom) & Total per SA (Baris)
+  const weekTotalUnits = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const weekTotalOmzet = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const saTotalUnits = {};
+  const saTotalOmzet = {};
+  let grandTotalUnits = 0;
+  let grandTotalOmzet = 0;
+
+  allSas.forEach((sa) => {
+    saTotalUnits[sa] = 0;
+    saTotalOmzet[sa] = 0;
+    for (let w = 1; w <= 5; w++) {
+      const list = (cellOrders[sa] && cellOrders[sa][w]) || [];
+      const units = list.length;
+      const omzet = list.reduce((sum, g) => sum + (Number(g.grandTotal) || 0), 0);
+      weekTotalUnits[w] += units;
+      weekTotalOmzet[w] += omzet;
+      saTotalUnits[sa] += units;
+      saTotalOmzet[sa] += omzet;
+      grandTotalUnits += units;
+      grandTotalOmzet += omzet;
+    }
+  });
+
+  // 7. Render Header Tabel (2 Baris Header persis seperti gambar referensi)
+  let theadHtml = `
+    <thead>
+      <tr>
+        <th rowspan="2" class="kabeng-header-green">PART SOP</th>
+        <th colspan="2" class="kabeng-header-week">W1</th>
+        <th colspan="2" class="kabeng-header-week">W2</th>
+        <th colspan="2" class="kabeng-header-week">W3</th>
+        <th colspan="2" class="kabeng-header-week">W4</th>
+        <th colspan="2" class="kabeng-header-week">W5</th>
+        <th colspan="2" class="kabeng-header-week" style="background:#0284c7;color:#ffffff;">TOTAL BULAN</th>
+      </tr>
+      <tr>
+        <th class="kabeng-sub-header">UNIT</th>
+        <th class="kabeng-sub-header">OMZET</th>
+        <th class="kabeng-sub-header">UNIT</th>
+        <th class="kabeng-sub-header">OMZET</th>
+        <th class="kabeng-sub-header">UNIT</th>
+        <th class="kabeng-sub-header">OMZET</th>
+        <th class="kabeng-sub-header">UNIT</th>
+        <th class="kabeng-sub-header">OMZET</th>
+        <th class="kabeng-sub-header">UNIT</th>
+        <th class="kabeng-sub-header">OMZET</th>
+        <th class="kabeng-sub-header" style="background:#0369a1;color:#ffffff;">UNIT</th>
+        <th class="kabeng-sub-header" style="background:#0369a1;color:#ffffff;">OMZET</th>
+      </tr>
+    </thead>
+  `;
+
+  // 8. Render Baris Data Tiap SA (TJS, WSH, AJS, AYU, FIK, WBN, TWC, OTHER)
+  let tbodyHtml = '<tbody>';
+  allSas.forEach((sa) => {
+    tbodyHtml += `<tr>`;
+    tbodyHtml += `<td class="kabeng-sa-cell">${escapeHtml(sa)}</td>`;
+
+    for (let w = 1; w <= 5; w++) {
+      const list = (cellOrders[sa] && cellOrders[sa][w]) || [];
+      const units = list.length;
+      const omzet = list.reduce((sum, g) => sum + (Number(g.grandTotal) || 0), 0);
+
+      // Rule alert kuning (#ffff00): Pada minggu yang aktif (weekTotalUnits > 0), jika SA mendapat 0 unit
+      const isZeroAlert = weekTotalUnits[w] > 0 && units === 0;
+      const isWeekHasActivity = weekTotalUnits[w] > 0;
+
+      let unitText = '';
+      let omzetText = '';
+
+      if (units > 0) {
+        unitText = String(units);
+        omzetText = formatRupiahPlain(omzet);
+      } else if (isZeroAlert) {
+        unitText = '0';
+        omzetText = '0';
+      } else if (isWeekHasActivity) {
+        unitText = '0';
+        omzetText = '';
+      } else {
+        unitText = '';
+        omzetText = '';
+      }
+
+      const alertClass = isZeroAlert ? 'kabeng-cell-zero' : '';
+      const clickableClass = units > 0 ? 'kabeng-clickable-cell' : '';
+      const clickAttr = units > 0 ? `onclick="openKabengCellDetail('${sa}', ${w})" title="Klik untuk lihat ${units} No. Polisi lengkap"` : '';
+
+      tbodyHtml += `
+        <td class="kabeng-unit-cell ${alertClass} ${clickableClass}" ${clickAttr}>
+          ${unitText}
+        </td>
+        <td class="kabeng-omzet-cell ${alertClass} ${clickableClass}" ${clickAttr}>
+          ${omzetText}
+        </td>
+      `;
+    }
+
+    // Kolom Total Bulan per SA
+    tbodyHtml += `
+      <td class="kabeng-unit-cell" style="background:#f0fdf4;font-weight:900;color:#16a34a;">
+        ${saTotalUnits[sa] > 0 ? saTotalUnits[sa] : '0'}
+      </td>
+      <td class="kabeng-omzet-cell" style="background:#f0fdf4;font-weight:900;color:#16a34a;">
+        ${saTotalOmzet[sa] > 0 ? formatRupiahPlain(saTotalOmzet[sa]) : '0'}
+      </td>
+    `;
+    tbodyHtml += `</tr>`;
+  });
+  tbodyHtml += '</tbody>';
+
+  // 9. Render Baris TOTAL & Baris Cutoff Tanggal
+  let tfootHtml = `
+    <tfoot>
+      <!-- Baris TOTAL -->
+      <tr class="kabeng-total-row">
+        <td class="kabeng-sa-cell" style="font-weight:900;">TOTAL</td>
+  `;
+
+  for (let w = 1; w <= 5; w++) {
+    const u = weekTotalUnits[w];
+    const omz = weekTotalOmzet[w];
+    tfootHtml += `
+      <td class="kabeng-unit-cell" style="font-weight:900;">${u}</td>
+      <td class="kabeng-omzet-cell" style="font-weight:900;">${omz > 0 ? formatRupiahPlain(omz) : '0'}</td>
+    `;
+  }
+
+  // Total Keseluruhan Bulan Ini
+  tfootHtml += `
+      <td class="kabeng-unit-cell" style="background:#e0f2fe;font-weight:900;color:#0369a1;">${grandTotalUnits}</td>
+      <td class="kabeng-omzet-cell" style="background:#e0f2fe;font-weight:900;color:#0369a1;">${formatRupiahPlain(grandTotalOmzet)}</td>
+    </tr>
+
+    <!-- Baris Cutoff Tanggal di bawah tabel seperti di Excel referensi -->
+    <tr class="kabeng-date-cutoff-row">
+      <td style="font-weight:800;font-size:0.75rem;background:#f8fafc;color:#475569;">CUTOFF</td>
+      <td colspan="2">${weeks[0].startLabel}</td>
+      <td colspan="2">${weeks[1].startLabel}</td>
+      <td colspan="2">${weeks[2].startLabel}</td>
+      <td colspan="2">${weeks[3].startLabel}</td>
+      <td colspan="2">${weeks[4].startLabel}</td>
+      <td colspan="2" style="font-size:0.75rem;color:#64748b;background:#f8fafc;">1 - ${daysInMonth} ${monthName}</td>
+    </tr>
+  </tfoot>
+  `;
+
+  tableEl.innerHTML = theadHtml + tbodyHtml + tfootHtml;
+
+  // 10. Perbarui Kartu Ringkasan KPI di atas tabel
+  const kpiUnitsEl = document.getElementById('kpiKabengTotalUnits');
+  const kpiOmzetEl = document.getElementById('kpiKabengTotalOmzet');
+  const kpiUnitsSubEl = document.getElementById('kpiKabengTotalUnitsSub');
+  const kpiTopSaUnitEl = document.getElementById('kpiKabengTopSaUnit');
+  const kpiTopSaUnitSubEl = document.getElementById('kpiKabengTopSaUnitSub');
+  const kpiTopSaOmzetEl = document.getElementById('kpiKabengTopSaOmzet');
+  const kpiTopSaOmzetSubEl = document.getElementById('kpiKabengTopSaOmzetSub');
+
+  if (kpiUnitsEl) kpiUnitsEl.textContent = `${grandTotalUnits} Unit`;
+  if (kpiOmzetEl) kpiOmzetEl.textContent = formatRupiah(grandTotalOmzet);
+  if (kpiUnitsSubEl) kpiUnitsSubEl.textContent = `Bulan ${FULL_MONTHS_ID[month]} ${year}`;
+
+  // Cari Top SA Unit & Omzet
+  let bestSaUnit = '-';
+  let maxUnits = -1;
+  let bestSaOmzet = '-';
+  let maxOmzet = -1;
+
+  allSas.forEach((sa) => {
+    if (saTotalUnits[sa] > maxUnits && saTotalUnits[sa] > 0) {
+      maxUnits = saTotalUnits[sa];
+      bestSaUnit = sa;
+    }
+    if (saTotalOmzet[sa] > maxOmzet && saTotalOmzet[sa] > 0) {
+      maxOmzet = saTotalOmzet[sa];
+      bestSaOmzet = sa;
+    }
+  });
+
+  if (kpiTopSaUnitEl) {
+    kpiTopSaUnitEl.textContent = maxUnits > 0 ? `${bestSaUnit} (${maxUnits} Unit)` : 'Belum Ada';
+  }
+  if (kpiTopSaUnitSubEl) {
+    kpiTopSaUnitSubEl.textContent = maxUnits > 0 ? `Nilai: ${formatRupiah(saTotalOmzet[bestSaUnit])}` : '-';
+  }
+  if (kpiTopSaOmzetEl) {
+    kpiTopSaOmzetEl.textContent = maxOmzet > 0 ? `${bestSaOmzet} (${formatRupiah(maxOmzet)})` : 'Belum Ada';
+  }
+  if (kpiTopSaOmzetSubEl) {
+    kpiTopSaOmzetSubEl.textContent = maxOmzet > 0 ? `Total: ${saTotalUnits[bestSaOmzet]} Unit Lengkap` : '-';
+  }
+}
+
+/**
+ * Menampilkan Pop-Up Rincian No. Polisi ketika Kabeng mengklik sel angka pada tabel mingguan
+ */
+function openKabengCellDetail(saKey, weekIndex) {
+  const modal = document.getElementById('kabengDetailModal');
+  const titleEl = document.getElementById('kabengDetailModalTitle');
+  const subtitleEl = document.getElementById('kabengDetailModalSubtitle');
+  const countEl = document.getElementById('kabengDetailStatCount');
+  const totalEl = document.getElementById('kabengDetailStatTotal');
+  const tbodyEl = document.getElementById('kabengDetailTbody');
+
+  if (!modal || !STATE.kabengReportCache || !STATE.kabengReportCache.cellOrders) return;
+
+  const orders = (STATE.kabengReportCache.cellOrders[saKey] && STATE.kabengReportCache.cellOrders[saKey][weekIndex]) || [];
+  const weekInfo = STATE.kabengReportCache.weeks.find((w) => w.index === weekIndex);
+  const weekLabel = weekInfo ? `${weekInfo.key} (${weekInfo.dateRangeLabel})` : `Pekan ${weekIndex}`;
+
+  if (titleEl) {
+    titleEl.textContent = `📋 Rincian Order Lengkap — SA: ${saKey} (${weekLabel})`;
+  }
+  if (subtitleEl) {
+    subtitleEl.textContent = `Daftar No. Polisi yang seluruh sparepart-nya telah tiba di bengkel pada ${weekLabel}.`;
+  }
+
+  const grandTotal = orders.reduce((sum, g) => sum + (Number(g.grandTotal) || 0), 0);
+  if (countEl) countEl.textContent = `${orders.length} Unit (No. Polisi Lengkap)`;
+  if (totalEl) totalEl.textContent = `Total: ${formatRupiah(grandTotal)}`;
+
+  if (tbodyEl) {
+    if (orders.length === 0) {
+      tbodyEl.innerHTML = `
+        <tr>
+          <td colspan="8" style="text-align:center;padding:2rem;color:#94a3b8;">
+            Tidak ada data order lengkap untuk SA ${saKey} pada ${weekLabel}.
+          </td>
+        </tr>
+      `;
+    } else {
+      tbodyEl.innerHTML = orders.map((grp, idx) => {
+        const partsSummary = (grp.items || []).map((it) => {
+          return `<div style="font-size:0.75rem;margin-bottom:2px;">
+            <code style="background:#e2e8f0;padding:1px 4px;border-radius:3px;font-weight:700;">${escapeHtml(it.partNo || '-')}</code>
+            ${escapeHtml(it.partName || '')} (${it.qty} pcs)
+          </div>`;
+        }).join('');
+
+        const latestAta = grp.latestAtaDisplay || formatShortDayMonth(grp.ata) || '-';
+
+        return `
+          <tr>
+            <td style="text-align:center;font-weight:700;color:#64748b;">${idx + 1}</td>
+            <td>
+              <div style="font-weight:900;font-size:0.92rem;color:#0b2341;">${escapeHtml(grp.nopol || '-')}</div>
+              <div style="font-size:0.72rem;color:#64748b;">Sheet: ${escapeHtml(grp.sheetName || '')}${grp.saPic ? ' / ' + escapeHtml(grp.saPic) : ''}</div>
+            </td>
+            <td>
+              <div style="font-weight:700;color:#0f172a;">${escapeHtml(grp.items[0]?.custName || '-')}</div>
+              <div style="font-size:0.74rem;color:#64748b;">${escapeHtml(grp.items[0]?.phone || '-')}</div>
+            </td>
+            <td style="text-align:center;font-size:0.78rem;font-weight:600;color:#475569;">
+              ${escapeHtml(grp.orderDate || '-')}
+            </td>
+            <td style="text-align:center;font-size:0.8rem;font-weight:800;color:#16a34a;">
+              ✓ ${escapeHtml(latestAta)}
+            </td>
+            <td>
+              ${partsSummary}
+            </td>
+            <td style="text-align:right;font-weight:800;color:#0f172a;white-space:nowrap;">
+              ${formatRupiah(grp.grandTotal)}
+            </td>
+            <td style="text-align:center;">
+              <button type="button" class="btn btn-outline btn-sm" style="padding:4px 8px;font-size:0.72rem;" onclick="openKabengOrderInMonitoring('${escapeHtml(grp.sheetName)}', '${escapeHtml(grp.nopol)}')">
+                Buka
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function closeKabengDetailModal() {
+  const modal = document.getElementById('kabengDetailModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * Pintasan dari modal detail mingguan langsung menuju ke kartu order di Monitoring SOP
+ */
+function openKabengOrderInMonitoring(sheetName, nopol) {
+  closeKabengDetailModal();
+  switchMainTab('monitoring');
+  if (sheetName && window.SOP_CONFIG && window.SOP_CONFIG.SA_SHEETS.includes(sheetName)) {
+    selectSaMonitoringTab(sheetName);
+  }
+  const searchInput = document.getElementById('monitoringSearchInput');
+  if (searchInput) {
+    searchInput.value = nopol;
+    renderMonitoringList();
+  }
+}
+
+/**
+ * Menyalin tabel mingguan ke Clipboard dalam format Tab-Separated Values (TSV)
+ * Sehingga dapat langsung dipaste ke Microsoft Excel atau Google Spreadsheet dengan format kolom rapi!
+ */
+function copyKabengTableToClipboard() {
+  if (!STATE.kabengReportCache || !STATE.kabengReportCache.cellOrders) {
+    showToast('Tabel belum selesai dimuat.', true);
+    return;
+  }
+
+  const { year, month, weeks, allSas, cellOrders } = STATE.kabengReportCache;
+  const monthName = SHORT_MONTHS_ID[month];
+
+  let tsv = `PART SOP\tW1\t\tW2\t\tW3\t\tW4\t\tW5\t\tTOTAL BULAN\t\n`;
+  tsv += `SA\tUNIT\tOMZET\tUNIT\tOMZET\tUNIT\tOMZET\tUNIT\tOMZET\tUNIT\tOMZET\tUNIT\tOMZET\n`;
+
+  const weekUnits = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const weekOmzet = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  let grandUnits = 0;
+  let grandOmzet = 0;
+
+  allSas.forEach((sa) => {
+    let rowStr = `${sa}`;
+    let saU = 0;
+    let saO = 0;
+    for (let w = 1; w <= 5; w++) {
+      const list = (cellOrders[sa] && cellOrders[sa][w]) || [];
+      const u = list.length;
+      const o = list.reduce((sum, g) => sum + (Number(g.grandTotal) || 0), 0);
+      weekUnits[w] += u;
+      weekOmzet[w] += o;
+      saU += u;
+      saO += o;
+      rowStr += `\t${u}\t${o}`;
+    }
+    grandUnits += saU;
+    grandOmzet += saO;
+    rowStr += `\t${saU}\t${saO}\n`;
+    tsv += rowStr;
+  });
+
+  // Baris Total
+  let totalRow = `TOTAL`;
+  for (let w = 1; w <= 5; w++) {
+    totalRow += `\t${weekUnits[w]}\t${weekOmzet[w]}`;
+  }
+  totalRow += `\t${grandUnits}\t${grandOmzet}\n`;
+  tsv += totalRow;
+
+  // Baris Cutoff
+  let cutoffRow = `CUTOFF`;
+  for (let w = 1; w <= 5; w++) {
+    cutoffRow += `\t${weeks[w - 1].startLabel}\t`;
+  }
+  cutoffRow += `\t${monthName} ${year}\t\n`;
+  tsv += cutoffRow;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(tsv).then(() => {
+      showToast('📋 Tabel Laporan Mingguan berhasil disalin ke clipboard! Silakan paste (Ctrl+V) langsung di Excel.');
+    }).catch(() => {
+      fallbackCopyText(tsv);
+    });
+  } else {
+    fallbackCopyText(tsv);
+  }
+}
+
+function fallbackCopyText(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast('📋 Tabel Laporan Mingguan berhasil disalin ke clipboard!');
+  } catch (e) {
+    showToast('Gagal menyalin otomatis, silakan coba lagi.', true);
+  }
+  document.body.removeChild(ta);
+}
+
+/**
+ * Mencetak Laporan Mingguan Kabeng
+ */
+function printKabengReport() {
+  window.print();
 }
 

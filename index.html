@@ -150,6 +150,16 @@
         <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('OTHER')">› OTHER (PIC Manual)</button>
       </div>
 
+      <!-- Menu Khusus Kabeng & Admin: Laporan Mingguan Performa SA -->
+      <button type="button" id="tabBtnKabengReport" class="drawer-menu-item" onclick="selectMenuFromDrawer('kabeng_report')">
+        <span class="drawer-menu-icon">📈</span>
+        <span class="drawer-menu-text">
+          <span class="drawer-menu-title">Laporan Mingguan Kabeng</span>
+          <span class="drawer-menu-desc">Monitoring Unit &amp; Omzet Lengkap Tiap SA Per Minggu</span>
+        </span>
+        <span class="drawer-menu-plus">+</span>
+      </button>
+
       <button type="button" id="tabBtnEmail" class="drawer-menu-item" onclick="selectMenuFromDrawer('email')">
         <span class="drawer-menu-icon">📧</span>
         <span class="drawer-menu-text">
@@ -593,6 +603,146 @@
     </section>
 
     <!-- ======================================================================
+         SECTION 2B: LAPORAN MINGGUAN KABENG (UNIT & OMZET TIAP SA PER WEEK W1 - W5)
+         ====================================================================== -->
+    <section id="sectionKabengReport" class="no-print hidden">
+      <div class="card" style="margin-bottom:1.25rem;">
+        <div class="card-header" style="flex-wrap:wrap;gap:1rem;">
+          <div>
+            <div class="card-title" style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+              <span>📈 Laporan Mingguan Kabeng (Unit &amp; Omzet Lengkap)</span>
+              <span style="font-size:0.75rem;background:#16a34a;color:#fff;padding:2px 10px;border-radius:12px;font-weight:800;letter-spacing:0.03em;">
+                PART SOP
+              </span>
+            </div>
+            <div class="card-subtitle">
+              Monitoring performa mingguan (W1 - W5) tiap Service Advisor untuk No. Polisi yang seluruh sparepart-nya <strong>sudah lengkap tiba di bengkel</strong>.
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <!-- Navigasi Cepat Bulan -->
+            <button type="button" class="btn btn-outline btn-sm" onclick="changeKabengReportMonth(-1)" title="Bulan Sebelumnya">
+              ◀
+            </button>
+            <select id="kabengMonthSelect" class="select select-sm" style="width:auto;font-weight:700;" onchange="handleKabengFilterChange()">
+              <option value="0">Januari</option>
+              <option value="1">Februari</option>
+              <option value="2">Maret</option>
+              <option value="3">April</option>
+              <option value="4">Mei</option>
+              <option value="5">Juni</option>
+              <option value="6">Juli</option>
+              <option value="7">Agustus</option>
+              <option value="8">September</option>
+              <option value="9">Oktober</option>
+              <option value="10">November</option>
+              <option value="11">Desember</option>
+            </select>
+            <select id="kabengYearSelect" class="select select-sm" style="width:auto;font-weight:700;" onchange="handleKabengFilterChange()">
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+            </select>
+            <button type="button" class="btn btn-outline btn-sm" onclick="changeKabengReportMonth(1)" title="Bulan Berikutnya">
+              ▶
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="resetKabengReportToCurrentMonth()" title="Kembali ke bulan saat ini">
+              Bulan Ini
+            </button>
+
+            <!-- Aksi Salin & Cetak -->
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyKabengTableToClipboard()" title="Salin Tabel ke Clipboard untuk di-paste langsung ke Microsoft Excel / Google Sheets">
+              📋 Salin ke Excel
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="printKabengReport()" title="Cetak Laporan Mingguan Kabeng">
+              🖨 Cetak
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="renderKabengWeeklyReport()" title="Perbarui data laporan">
+              ↻ Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KARTU RINGKASAN KPI BULANAN -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem;margin-bottom:1.25rem;">
+        <div class="card" style="padding:1.05rem;border-left:4px solid #16a34a;background:#fff;">
+          <div style="font-size:0.75rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">
+            Total Unit Lengkap
+          </div>
+          <div id="kpiKabengTotalUnits" style="font-size:1.65rem;font-weight:900;color:#16a34a;margin-top:0.35rem;line-height:1.1;">
+            0 Unit
+          </div>
+          <div id="kpiKabengTotalUnitsSub" style="font-size:0.73rem;color:#94a3b8;margin-top:4px;">
+            Bulan terpilih
+          </div>
+        </div>
+
+        <div class="card" style="padding:1.05rem;border-left:4px solid #0284c7;background:#fff;">
+          <div style="font-size:0.75rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">
+            Total Omzet SOP Lengkap
+          </div>
+          <div id="kpiKabengTotalOmzet" style="font-size:1.5rem;font-weight:900;color:#0369a1;margin-top:0.35rem;line-height:1.1;">
+            Rp 0
+          </div>
+          <div style="font-size:0.73rem;color:#94a3b8;margin-top:4px;">
+            Akumulasi omzet W1 - W5
+          </div>
+        </div>
+
+        <div class="card" style="padding:1.05rem;border-left:4px solid #f59e0b;background:#fff;">
+          <div style="font-size:0.75rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">
+            Top SA (Unit Terbanyak)
+          </div>
+          <div id="kpiKabengTopSaUnit" style="font-size:1.2rem;font-weight:900;color:#b45309;margin-top:0.35rem;line-height:1.1;">
+            -
+          </div>
+          <div id="kpiKabengTopSaUnitSub" style="font-size:0.73rem;color:#94a3b8;margin-top:4px;">
+            -
+          </div>
+        </div>
+
+        <div class="card" style="padding:1.05rem;border-left:4px solid #8b5cf6;background:#fff;">
+          <div style="font-size:0.75rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">
+            Top SA (Omzet Tertinggi)
+          </div>
+          <div id="kpiKabengTopSaOmzet" style="font-size:1.2rem;font-weight:900;color:#6d28d9;margin-top:0.35rem;line-height:1.1;">
+            -
+          </div>
+          <div id="kpiKabengTopSaOmzetSub" style="font-size:0.73rem;color:#94a3b8;margin-top:4px;">
+            -
+          </div>
+        </div>
+      </div>
+
+      <!-- TABEL MATRIX LAPORAN PERFORMA SA W1 - W5 (GAYA EXCEL TOYOTA) -->
+      <div class="card" style="padding:0;overflow:hidden;border:1.5px solid #000;box-shadow:0 6px 16px rgba(0,0,0,0.08);background:#fff;">
+        <div style="overflow-x:auto;">
+          <table id="kabengMatrixTable" class="kabeng-matrix-table">
+            <!-- Dirender secara dinamis oleh app.js -->
+          </table>
+        </div>
+
+        <div style="padding:0.75rem 1.15rem;background:#f8fafc;border-top:1.5px solid #000;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;font-size:0.8rem;color:#475569;">
+          <div style="display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap;">
+            <span style="display:inline-flex;align-items:center;gap:0.4rem;">
+              <span style="display:inline-block;width:15px;height:15px;background:#ffff00;border:1px solid #000;"></span>
+              <strong>Kuning (#ffff00):</strong> SA memiliki 0 Unit / 0 Omzet pada minggu kerja aktif.
+            </span>
+            <span style="display:inline-flex;align-items:center;gap:0.35rem;color:#0284c7;">
+              💡 <em>Klik pada angka di dalam tabel untuk melihat daftar rincian No. Polisi.</em>
+            </span>
+          </div>
+          <div id="kabengReportSyncNote" style="font-size:0.75rem;color:#64748b;">
+            Sinkronisasi otomatis dengan database Google Spreadsheet.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
          SECTION 3: PENGATURAN DINAMIS EMAIL SA & REMINDER H+7 OTOMATIS
          ====================================================================== -->
     <section id="sectionEmailSettings" class="no-print hidden">
@@ -982,6 +1132,58 @@
             Tutup Pop-Up
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETAIL RINCIAN ORDER KABENG PER SA & WEEK -->
+  <div id="kabengDetailModal" class="modal-backdrop hidden no-print" onclick="if(event.target===this) closeKabengDetailModal()">
+    <div class="modal-box" style="max-width:920px;padding:0;overflow:hidden;border:1.5px solid #0b2341;box-shadow:0 24px 48px rgba(0,0,0,0.35);">
+      <div style="background:#0b2341;color:#fff;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">
+        <div>
+          <div id="kabengDetailModalTitle" style="font-size:1.05rem;font-weight:900;letter-spacing:0.02em;">
+            📋 Rincian Order Lengkap
+          </div>
+          <div id="kabengDetailModalSubtitle" style="font-size:0.8rem;color:#93c5fd;margin-top:0.2rem;">
+            Daftar No. Polisi yang telah selesai / lengkap part-nya.
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" style="background:rgba(255,255,255,0.12);color:#fff;border-color:rgba(255,255,255,0.3);" onclick="closeKabengDetailModal()">
+          ✕
+        </button>
+      </div>
+
+      <div style="padding:1.15rem 1.35rem;max-height:68vh;overflow-y:auto;background:#f8fafc;">
+        <div id="kabengDetailSummaryPill" style="margin-bottom:0.85rem;display:flex;align-items:center;justify-content:space-between;background:#ecfdf5;border:1px solid #a7f3d0;padding:0.6rem 1rem;border-radius:8px;">
+          <span style="font-size:0.84rem;font-weight:700;color:#065f46;" id="kabengDetailStatCount">0 Unit</span>
+          <span style="font-size:0.92rem;font-weight:900;color:#047857;" id="kabengDetailStatTotal">Rp 0</span>
+        </div>
+
+        <div class="parts-table-wrap">
+          <table class="parts-table" style="background:#fff;">
+            <thead>
+              <tr>
+                <th style="width:40px;text-align:center;">No</th>
+                <th style="width:125px;">No. Polisi</th>
+                <th style="width:160px;">Pelanggan / Telp</th>
+                <th style="width:115px;text-align:center;">Tgl Order</th>
+                <th style="width:115px;text-align:center;">Tgl Lengkap (ATA)</th>
+                <th>Item Sparepart</th>
+                <th style="width:125px;text-align:right;">Total (Rp)</th>
+                <th style="width:90px;text-align:center;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="kabengDetailTbody">
+              <!-- Diisi secara dinamis oleh app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="background:#f1f5f9;padding:0.75rem 1.35rem;border-top:1px solid #cbd5e1;display:flex;align-items:center;justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeKabengDetailModal()">
+          Tutup
+        </button>
       </div>
     </div>
   </div>
