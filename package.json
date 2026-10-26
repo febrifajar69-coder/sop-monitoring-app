@@ -2,10 +2,5 @@
   "name": "sop-monitoring-agung-automall-gianyar",
   "version": "1.0.0",
   "description": "Aplikasi Web Pembuatan Form Order Special Order Part (SOP) & Monitoring Follow Up SA — PT. Agung Automall Gianyar",
-  "private": true,
-  "scripts": {
-    "dev": "npx --yes serve . -l 3000",
-    "start": "npx --yes serve . -l 3000",
-    "build": "echo \"Static web application ready for Vercel deployment\""
-  }
+  "private": true
 }
