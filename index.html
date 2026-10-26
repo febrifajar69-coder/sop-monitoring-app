@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistem Special Order Part (SOP) & Monitoring SA — PT. Agung Automall Gianyar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+
+  <!-- TOP HEADER DENGAN TOMBOL GARIS 3 (HAMBURGER MENU) DI POJOK KIRI ATAS -->
+  <header class="app-header no-print">
+    <div class="header-inner">
+      <div class="brand-box">
+        <button
+          type="button"
+          id="btnOpenDrawer"
+          class="hamburger-btn"
+          onclick="toggleNavDrawer(true)"
+          title="Buka Menu Navigasi (Form Order, Monitoring SOP, Pengaturan Email)"
+          aria-label="Buka Menu Navigasi"
+        >
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
+        <div class="brand-badge">SOP</div>
+        <div>
+          <div class="brand-title">PT. Agung Automall Gianyar</div>
+          <div class="brand-subtitle" id="activeMenuHeaderSubtitle">Form Special Order Part</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button
+          type="button"
+          id="btnOpenNotFixModal"
+          class="btn btn-sm hidden"
+          onclick="openNotFixPopup(true)"
+          style="background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%);color:#fff;border:1.5px solid #fca5a5;box-shadow:0 0 12px rgba(230,0,18,0.55);"
+          title="Lihat daftar No. Polisi yang masih berstatus NOT FIX lebih dari 7 hari (H+7)"
+        >
+          ⚠️ <span id="notFixAlertCount">0</span> NOT FIX (H+7)
+        </button>
+        <div id="syncStatusPill" class="sync-pill" title="Status koneksi ke Google Spreadsheet">
+          <span id="syncDot" class="sync-dot"></span>
+          <span id="syncText">Terhubung ke Google Sheets</span>
+        </div>
+        <button type="button" id="btnRefreshData" class="btn btn-outline btn-sm" style="background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.2);">
+          ↻ Refresh Data
+        </button>
+        <button type="button" id="btnCleanupGhostRows" class="btn btn-outline btn-sm" onclick="triggerCleanupGhostRows()" style="background:rgba(239,68,68,0.15);color:#fca5a5;border-color:rgba(239,68,68,0.4);" title="Bersihkan baris-baris kosong di spreadsheet monitoring yang sempat terisi data tidak sengaja">
+          🧹 Bersihkan Baris Kosong
+        </button>
+        <button type="button" id="btnOpenApiModal" class="btn btn-primary btn-sm">
+          ⚙ Script API
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- SLIDE-OUT SIDEBAR MENU DRAWER (SEPERTI GAMBAR REFERENSI AGASS GYRA) -->
+  <div id="navDrawerBackdrop" class="drawer-backdrop hidden no-print" onclick="toggleNavDrawer(false)"></div>
+  <aside id="navSideDrawer" class="side-drawer no-print" aria-hidden="true">
+    <!-- Top Bar Logo Agung Toyota Gianyar -->
+    <div class="drawer-topbar">
+      <button type="button" class="drawer-back-btn" onclick="toggleNavDrawer(false)" title="Tutup Menu">
+        &#8592;
+      </button>
+      <div style="flex:1;display:flex;align-items:center;min-width:0;">
+        <img
+          src="agung-toyota-logo.png"
+          alt="Agung Toyota Gianyar"
+          style="height:25px;max-height:25px;width:auto;object-fit:contain;border-radius:3px;display:block;"
+        />
+      </div>
+      <div class="drawer-topbar-tag">🔧 SOP PART</div>
+    </div>
+
+    <!-- Banner Profil Pengguna -->
+    <div class="drawer-profile-banner">
+      <div class="drawer-avatar">
+        <svg viewBox="0 0 64 64" width="46" height="46" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="32" r="32" fill="#FEF3C7"/>
+          <circle cx="32" cy="24" r="11" fill="#F59E0B"/>
+          <path d="M14 54C14 43.5 22 37 32 37C42 37 50 43.5 50 54" fill="#1E293B"/>
+          <path d="M29 37L32 49L35 37" fill="#3B82F6"/>
+        </svg>
+      </div>
+      <div class="drawer-profile-info" onclick="openMyProfileModal()" style="cursor:pointer;" title="Klik untuk ubah Username & Password akun Anda">
+        <div class="drawer-profile-name" id="drawerProfileName">Febri Rahmdani (FEB)</div>
+        <div class="drawer-profile-role" id="drawerProfileRole">Admin Partman &amp; SA CRM</div>
+        <div style="font-size:0.68rem;color:#fca5a5;margin-top:2px;">✏️ Ubah Akun Saya</div>
+      </div>
+      <button type="button" onclick="handleLogout()" title="Keluar / Logout" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.25);color:#fff;border-radius:6px;padding:4px 8px;font-size:0.72rem;cursor:pointer;font-weight:700;">
+        🚪 Keluar
+      </button>
+    </div>
+
+    <!-- Daftar Menu Utama -->
+    <div class="drawer-menu-list">
+      <div class="drawer-section-label">MENU UTAMA SISTEM SOP</div>
+
+      <button type="button" id="tabBtnPartman" class="drawer-menu-item active" onclick="selectMenuFromDrawer('partman')">
+        <span class="drawer-menu-icon">📝</span>
+        <span class="drawer-menu-text">
+          <span class="drawer-menu-title">Form Order</span>
+          <span class="drawer-menu-desc">Pembuatan Special Order Part (Partman)</span>
+        </span>
+        <span class="drawer-menu-plus">+</span>
+      </button>
+
+      <button type="button" id="tabBtnMonitoring" class="drawer-menu-item" onclick="selectMenuFromDrawer('monitoring')">
+        <span class="drawer-menu-icon">📊</span>
+        <span class="drawer-menu-text">
+          <span class="drawer-menu-title">Monitoring SOP</span>
+          <span class="drawer-menu-desc">Follow Up SA, NEW ETA, ATA &amp; Job Done</span>
+        </span>
+        <span class="drawer-menu-plus">+</span>
+      </button>
+
+      <!-- Sub-menu pintasan langsung ke masing-masing Sheet SA di Monitoring SOP -->
+      <div class="drawer-submenu">
+        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('AJS')">› Sheet AJS</button>
+        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('AYU')">› Sheet AYU</button>
+        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('FIK')">› Sheet FIK</button>
+        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('WBN')">› Sheet WBN</button>
+        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('OTHER')">› Sheet OTHER (PIC Manual)</button>
+      </div>
+
+      <button type="button" id="tabBtnEmail" class="drawer-menu-item" onclick="selectMenuFromDrawer('email')">
+        <span class="drawer-menu-icon">📧</span>
+        <span class="drawer-menu-text">
+          <span class="drawer-menu-title">Pengaturan Email</span>
+          <span class="drawer-menu-desc">Kelola Email SA, CC Kabeng &amp; Reminder H+7</span>
+        </span>
+        <span class="drawer-menu-plus">+</span>
+      </button>
+
+      <button type="button" id="tabBtnUsers" class="drawer-menu-item" onclick="selectMenuFromDrawer('users')">
+        <span class="drawer-menu-icon">👥</span>
+        <span class="drawer-menu-text">
+          <span class="drawer-menu-title">Kelola User</span>
+          <span class="drawer-menu-desc">Daftar Akun SA, Kabeng, Username &amp; Password</span>
+        </span>
+        <span class="drawer-menu-plus">+</span>
+      </button>
+
+      <hr id="drawerDividerSettings" class="drawer-divider" />
+
+      <button type="button" id="drawerBtnSettings" class="drawer-menu-item" onclick="toggleNavDrawer(false); openApiModal();">
+        <span class="drawer-menu-icon">⚙️</span>
+        <span class="drawer-menu-text">
+          <span class="drawer-menu-title">Settings / Script API</span>
+          <span class="drawer-menu-desc">Konfigurasi URL Google Apps Script</span>
+        </span>
+        <span class="drawer-menu-plus">+</span>
+      </button>
+
+      <button type="button" class="drawer-menu-item" onclick="handleLogout()" style="color:#fca5a5;">
+        <span class="drawer-menu-icon">🚪</span>
+        <span class="drawer-menu-text">
+          <span class="drawer-menu-title" style="color:#f87171;">Keluar (Logout)</span>
+          <span class="drawer-menu-desc" style="color:#a1a1aa;">Ganti user atau keluar dari sesi</span>
+        </span>
+        <span class="drawer-menu-plus" style="color:#f87171;">›</span>
+      </button>
+    </div>
+
+    <div class="drawer-footer">
+      Agung Toyota Gianyar &bull; Design By : <strong>FEB</strong>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-container">
+
+    <!-- ======================================================================
+         SECTION 1: PEMBUATAN FORM ORDER (KHUSUS PARTMAN)
+         ====================================================================== -->
+    <section id="sectionPartman" class="no-print">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              <span>Form Special Order Part</span>
+            </div>
+            <div class="card-subtitle">
+              Pembuatan dokumen <strong>SOP Lembar 1 (Customer)</strong> &amp; <strong>SOP Lembar 2 (Internal)</strong> serta pengiriman ke Monitoring SOP.
+            </div>
+          </div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="loadSampleOrder()">
+              Isi Contoh Data (DK-1640-LN)
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="resetOrderForm()">
+              Bersihkan Form
+            </button>
+          </div>
+        </div>
+
+        <form id="sopOrderForm" onsubmit="handleOrderSubmit(event)">
+          <div class="form-grid">
+
+            <!-- BARIS 1: 4 KOLOM SIMETRIS (3 + 3 + 3 + 3 = 12) -->
+            <!-- 1. NOPOL -->
+            <div class="field-group col-3">
+              <label class="field-label" for="inputNopol">
+                <span>No. Polisi (NOPOL) *</span>
+              </label>
+              <div style="display:flex;gap:0.4rem;">
+                <input
+                  type="text"
+                  id="inputNopol"
+                  class="input input-uppercase"
+                  placeholder="Contoh: DK-1640-LN"
+                  autocomplete="off"
+                  required
+                />
+                <button type="button" id="btnLookupNopol" class="btn btn-secondary btn-sm" style="height:42px;padding:0 0.85rem;" title="Cari data pelanggan otomatis">
+                  Cari
+                </button>
+              </div>
+              <div id="nopolAutocomplete" class="autocomplete-box hidden"></div>
+              <small id="nopolLookupHint" style="font-size:0.72rem;color:#64748b;display:none;"></small>
+            </div>
+
+            <!-- 2. SA / FO / TEKNISI + MANUAL PIC UNTUK OTHER -->
+            <div class="field-group col-3">
+              <label class="field-label" for="selectSa">
+                <span>Nama SA / FO / Teknisi *</span>
+              </label>
+              <select id="selectSa" class="select" required onchange="handleSaChange()">
+                <option value="AJS">AJS</option>
+                <option value="AYU">AYU</option>
+                <option value="FIK">FIK</option>
+                <option value="WBN">WBN</option>
+                <option value="OTHER">OTHER (Isi PIC Manual)</option>
+              </select>
+
+              <!-- Muncul khusus saat memilih OTHER -->
+              <div id="otherPicContainer" class="other-pic-box hidden">
+                <label class="field-label" for="inputPicOther" style="color:#b45309;margin-bottom:0.3rem;">
+                  <span>Nama PIC / SA Manual (OTHER) *</span>
+                </label>
+                <input
+                  type="text"
+                  id="inputPicOther"
+                  class="input input-uppercase"
+                  placeholder="Ketik Nama PIC (PONI, MRA, PHW)"
+                  oninput="renderPrintSheets()"
+                />
+                <div class="pic-chips">
+                  <span style="font-size:0.7rem;color:#92400e;align-self:center;">Pilih:</span>
+                  <button type="button" class="pic-chip" onclick="setPicOther('PONI')">PONI</button>
+                  <button type="button" class="pic-chip" onclick="setPicOther('MRA')">MRA</button>
+                  <button type="button" class="pic-chip" onclick="setPicOther('PHW')">PHW</button>
+                  <button type="button" class="pic-chip" onclick="setPicOther('THS')">THS</button>
+                  <button type="button" class="pic-chip" onclick="setPicOther('WSK')">WSK</button>
+                  <button type="button" class="pic-chip" onclick="setPicOther('PTW')">PTW</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. ORDER DATE -->
+            <div class="field-group col-3">
+              <label class="field-label" for="inputOrderDate">
+                <span>Order Date *</span>
+              </label>
+              <input type="date" id="inputOrderDate" class="input" required onchange="handleOrderDateChange()" />
+            </div>
+
+            <!-- 4. TANGGAL ESTIMASI (ETA) -->
+            <div class="field-group col-3">
+              <label class="field-label" for="inputEtaDate">
+                <span>Tanggal Estimasi (ETA)</span>
+              </label>
+              <input type="date" id="inputEtaDate" class="input" onchange="renderPrintSheets()" />
+            </div>
+
+            <!-- BARIS 2: 4 KOLOM SIMETRIS (3 + 3 + 3 + 3 = 12) -->
+            <!-- 5. NAMA CUSTOMER -->
+            <div class="field-group col-3">
+              <label class="field-label" for="inputCustomerName">
+                <span>Nama Customer *</span>
+              </label>
+              <input
+                type="text"
+                id="inputCustomerName"
+                class="input input-uppercase"
+                placeholder="Nama Customer / Perusahaan"
+                required
+                oninput="renderPrintSheets()"
+              />
+            </div>
+
+            <!-- 6. NO TELP / HP -->
+            <div class="field-group col-3">
+              <label class="field-label" for="inputPhone">
+                <span>No. Telp / HP</span>
+              </label>
+              <input
+                type="text"
+                id="inputPhone"
+                class="input"
+                placeholder="Contoh: 081338189890"
+                oninput="renderPrintSheets()"
+              />
+            </div>
+
+            <!-- 7. ALAMAT CUSTOMER -->
+            <div class="field-group col-3">
+              <label class="field-label" for="inputAddress">
+                <span>Alamat Customer</span>
+              </label>
+              <input
+                type="text"
+                id="inputAddress"
+                class="input input-uppercase"
+                placeholder="Alamat lengkap pelanggan"
+                oninput="renderPrintSheets()"
+              />
+            </div>
+
+            <!-- 8. NOTE TAMBAHAN FORM -->
+            <div class="field-group col-3">
+              <label class="field-label" for="inputFormNote">
+                <span>Note Tambahan Form</span>
+              </label>
+              <input
+                type="text"
+                id="inputFormNote"
+                class="input input-uppercase"
+                placeholder="Catatan SOP Lembar 1 & 2"
+                oninput="renderPrintSheets()"
+              />
+            </div>
+
+          </div>
+
+          <!-- DAFTAR MULTI-ITEM PART -->
+          <div style="margin-top:1.35rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.65rem;flex-wrap:wrap;gap:0.5rem;">
+              <div>
+                <span style="font-weight:800;font-size:0.95rem;">Daftar Pesanan Item Part (Multi-Item per No. Polisi)</span>
+                <span style="font-size:0.78rem;color:#64748b;margin-left:0.4rem;">Bisa lebih dari 1 item part dalam 1 Form Order</span>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="addPartItemRow()">
+                + Tambah Item Part
+              </button>
+            </div>
+
+            <div class="parts-table-wrap">
+              <table class="parts-table">
+                <thead>
+                  <tr>
+                    <th style="width:48px;text-align:center;">No</th>
+                    <th style="width:210px;">Part No</th>
+                    <th>Part Name (Nama Sparepart)</th>
+                    <th style="width:95px;">Qty</th>
+                    <th style="width:165px;">Harga Satuan (Rp)</th>
+                    <th style="width:175px;">Total Harga (Rp)</th>
+                    <th style="width:55px;text-align:center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="partItemsTbody">
+                  <!-- Diisi dinamis oleh app.js -->
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="5" style="text-align:right;font-size:0.92rem;">JUMLAH TOTAL (Rp.)</td>
+                    <td id="formGrandTotalCell" style="font-size:1rem;color:var(--primary);">Rp 0</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- TOMBOL AKSI: KIRIM KE MONITORING & PRINT FORM ORDER -->
+          <div class="action-bar">
+            <div style="display:flex;flex-wrap:wrap;gap:0.55rem;">
+              <button type="button" class="btn btn-outline" onclick="triggerPrint('lembar1')">
+                🖨 Print SOP Lembar 1 (Customer)
+              </button>
+              <button type="button" class="btn btn-outline" onclick="triggerPrint('lembar2')">
+                🖨 Print SOP Lembar 2 (Internal)
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="triggerPrint('both')">
+                🖨 Print Lembar 1 &amp; 2 Sekaligus
+              </button>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:0.65rem;flex-wrap:wrap;">
+              <button type="submit" id="btnSubmitMonitoring" class="btn btn-primary" style="padding:0.75rem 1.4rem;font-size:0.95rem;">
+                🚀 Kirim ke Monitoring (<span id="targetSheetLabel">Sheet AJS</span>)
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- PRATINJAU CETAK LIVE (SOP LEMBAR 1 & SOP LEMBAR 2) -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Pratinjau Hasil Print Form Order (SOP LEMBAR 1 &amp; SOP LEMBAR 2)</div>
+            <div class="card-subtitle">
+              Format di bawah ini otomatis mengikuti data yang Anda ketik di atas dan siap dicetak ke kertas A4/F4 maupun disimpan sebagai PDF.
+            </div>
+          </div>
+          <div style="display:flex;gap:0.45rem;flex-wrap:wrap;">
+            <button type="button" id="previewTabBoth" class="btn btn-secondary btn-sm" onclick="setPreviewMode('both')">Tampilkan Keduanya</button>
+            <button type="button" id="previewTabL1" class="btn btn-outline btn-sm" onclick="setPreviewMode('lembar1')">Hanya Lembar 1 (Customer)</button>
+            <button type="button" id="previewTabL2" class="btn btn-outline btn-sm" onclick="setPreviewMode('lembar2')">Hanya Lembar 2 (Internal)</button>
+          </div>
+        </div>
+
+        <div id="livePrintPreviewWrapper" class="print-sheets-wrapper">
+          <!-- Dirender secara live oleh renderPrintSheets() di app.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         SECTION 2: DASHBOARD MONITORING SA (AJS, AYU, FIK, WBN, OTHER)
+         ====================================================================== -->
+    <section id="sectionMonitoring" class="no-print hidden">
+
+      <!-- PILIHAN SHEET SA (AJS, AYU, FIK, WBN, OTHER) -->
+      <div class="sa-tabs" id="saSheetTabs">
+        <button type="button" class="sa-tab active" data-sa="AJS" onclick="selectSaMonitoringTab('AJS')">
+          <span>Sheet AJS</span>
+          <span class="sa-count-badge" id="badgeCountAJS">0</span>
+        </button>
+        <button type="button" class="sa-tab" data-sa="AYU" onclick="selectSaMonitoringTab('AYU')">
+          <span>Sheet AYU</span>
+          <span class="sa-count-badge" id="badgeCountAYU">0</span>
+        </button>
+        <button type="button" class="sa-tab" data-sa="FIK" onclick="selectSaMonitoringTab('FIK')">
+          <span>Sheet FIK</span>
+          <span class="sa-count-badge" id="badgeCountFIK">0</span>
+        </button>
+        <button type="button" class="sa-tab" data-sa="WBN" onclick="selectSaMonitoringTab('WBN')">
+          <span>Sheet WBN</span>
+          <span class="sa-count-badge" id="badgeCountWBN">0</span>
+        </button>
+        <button type="button" class="sa-tab" data-sa="OTHER" onclick="selectSaMonitoringTab('OTHER')">
+          <span>Sheet OTHER (PIC Manual)</span>
+          <span class="sa-count-badge" id="badgeCountOTHER">0</span>
+        </button>
+      </div>
+
+      <div class="card">
+        <!-- HEADER RINGKASAN SA: TOTAL NO POL & TOTAL RUPIAH UNTUK NOPOL LENGKAP DATANG -->
+        <div id="saKpiArrivalSummary" style="margin-bottom:1rem;"></div>
+
+        <div class="filter-bar">
+          <div class="filter-search">
+            <input
+              type="text"
+              id="monitoringSearchInput"
+              class="input"
+              placeholder="🔍 Cari No. Polisi, Nama Part, Nomor Part, atau No. Order..."
+              oninput="renderMonitoringList()"
+            />
+          </div>
+
+          <!-- Filter khusus PIC saat berada di Sheet OTHER -->
+          <div id="otherPicFilterWrap" class="hidden" style="min-width:190px;">
+            <select id="otherPicFilterSelect" class="select" onchange="renderMonitoringList()">
+              <option value="ALL">Semua PIC (OTHER)</option>
+            </select>
+          </div>
+
+          <div style="min-width:190px;">
+            <select id="monitoringDpFilter" class="select" onchange="renderMonitoringList()">
+              <option value="ALL">Semua Status DP</option>
+              <option value="NOT FIX">DP: NOT FIX</option>
+              <option value="LUNAS">DP: LUNAS</option>
+              <option value="DP">DP: DP</option>
+              <option value="KNTRK">DP: KNTRK</option>
+              <option value="INAP">DP: INAP</option>
+              <option value="W/O DP">DP: W/O DP</option>
+            </select>
+          </div>
+
+          <div style="min-width:190px;">
+            <select id="monitoringStatusFilter" class="select" onchange="renderMonitoringList()">
+              <option value="ALL">Semua Status Order</option>
+              <option value="NOT FIX">Order: NOT FIX</option>
+              <option value="IN PROCESS">Order: IN PROCESS</option>
+              <option value="ARRIVAL">Order: ARRIVAL</option>
+              <option value="BO">Order: BO (Back Order)</option>
+              <option value="NEED_FU">Belum Di-Follow Up</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="monitoringListContainer">
+          <!-- Daftar grup order per Nopol dirender di sini oleh app.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         SECTION 3: PENGATURAN DINAMIS EMAIL SA & REMINDER H+7 OTOMATIS
+         ====================================================================== -->
+    <section id="sectionEmailSettings" class="no-print hidden">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              <span>📧 Manajemen Alamat Email SA &amp; Pengingat Otomatis (Reminder H+7)</span>
+            </div>
+            <div class="card-subtitle">
+              Tambahkan atau ubah alamat email masing-masing SA kapan saja <strong>tanpa perlu mengubah script</strong>. Saat SA menginput <strong>Follow Up 1</strong>, sistem otomatis menghitung <strong>H+7</strong> dan mengirimkan email reminder ke SA terkait jika Follow Up berikutnya belum terisi.
+            </div>
+          </div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <span id="triggerStatusBadge" class="status-badge status-arrival">Jadwal Harian H+7: Siap</span>
+            <button type="button" class="btn btn-outline btn-sm" onclick="fetchEmailSettingsFromServer(true)">
+              ↻ Muat Ulang Daftar Email
+            </button>
+          </div>
+        </div>
+
+        <!-- Pengaturan Umum Reminder, Pengirim & Kepala Bengkel -->
+        <div class="form-grid" style="margin-bottom:1.25rem;background:#f8fafc;padding:1rem;border-radius:10px;border:1px solid var(--border);">
+          <div class="field-group col-3">
+            <label class="field-label" for="inputSenderEmail">
+              <span>Email Pengirim</span>
+            </label>
+            <input
+              type="email"
+              id="inputSenderEmail"
+              class="input"
+              value="febrifajar69@gmail.com"
+            />
+          </div>
+
+          <div class="field-group col-3">
+            <label class="field-label" for="inputKabengEmail">
+              <span>Email Kepala Bengkel (CC) *</span>
+            </label>
+            <input
+              type="email"
+              id="inputKabengEmail"
+              class="input"
+              value="andicka.nengah@gmail.com"
+              placeholder="andicka.nengah@gmail.com"
+            />
+          </div>
+
+          <div class="field-group col-3">
+            <label class="field-label" for="inputReminderDays">
+              <span>Jarak Hari Reminder</span>
+            </label>
+            <input type="number" id="inputReminderDays" class="input" min="1" max="60" value="7" />
+          </div>
+
+          <div class="field-group col-3">
+            <label class="field-label" for="selectReminderHour">
+              <span>Jam Kirim Harian</span>
+            </label>
+            <select id="selectReminderHour" class="select">
+              <option value="7">07:00 Pagi</option>
+              <option value="8" selected>08:00 Pagi</option>
+              <option value="9">09:00 Pagi</option>
+              <option value="10">10:00 Pagi</option>
+            </select>
+          </div>
+
+          <div class="field-group col-12">
+            <label class="field-label" for="inputAppUrlForEmail">
+              <span>Link Aplikasi Web (Vercel) di Dalam Email (Opsional)</span>
+            </label>
+            <input
+              type="url"
+              id="inputAppUrlForEmail"
+              class="input"
+              placeholder="Contoh: https://sop-monitoring-gianyar.vercel.app"
+            />
+          </div>
+        </div>
+
+        <!-- Tabel Daftar Email SA (Bisa Tambah & Edit Dinamis) -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.65rem;flex-wrap:wrap;gap:0.5rem;">
+          <div>
+            <span style="font-weight:800;font-size:0.95rem;">Daftar Alamat Email Service Advisor (SA) &amp; PIC</span>
+            <span style="font-size:0.78rem;color:#64748b;margin-left:0.4rem;">Jika ada pergeseran posisi SA, cukup ganti nama/email di bawah ini lalu klik Simpan.</span>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addSaEmailRow()">
+            + Tambah Email SA / PIC Baru
+          </button>
+        </div>
+
+        <div class="parts-table-wrap">
+          <table class="parts-table">
+            <thead>
+              <tr>
+                <th style="width:155px;">Kode SA / PIC *</th>
+                <th style="width:230px;">Nama Lengkap / Jabatan SA</th>
+                <th>Alamat Email Penerima Reminder *</th>
+                <th style="width:110px;text-align:center;">Status Aktif</th>
+                <th style="width:170px;text-align:center;">Uji Coba / Hapus</th>
+              </tr>
+            </thead>
+            <tbody id="saEmailsTbody">
+              <!-- Diisi secara dinamis oleh app.js -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="action-bar">
+          <div style="display:flex;gap:0.55rem;flex-wrap:wrap;">
+            <button type="button" id="btnRunReminderNow" class="btn btn-outline" onclick="triggerReminderCheckNow()">
+              ⚡ Cek &amp; Kirim Reminder H+7 Sekarang
+            </button>
+          </div>
+          <div style="display:flex;gap:0.65rem;flex-wrap:wrap;">
+            <button type="button" id="btnSaveEmailConfig" class="btn btn-primary" style="padding:0.75rem 1.4rem;font-size:0.95rem;" onclick="saveEmailSettingsToServer()">
+              💾 Simpan Pengaturan Email &amp; Aktifkan Reminder H+7
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRATINJAU TEMPLATE EMAIL REMINDER AGUNG TOYOTA GIANYAR -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Pratinjau Template Email Reminder (Agung Toyota Gianyar)</div>
+            <div class="card-subtitle">
+              Tampilan email otomatis yang dikirim dari <code>febrifajar69@gmail.com</code> ke masing-masing SA beserta tembusan (CC) ke Kepala Bengkel (<code>andicka.nengah@gmail.com</code>).
+            </div>
+          </div>
+        </div>
+
+        <div style="font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #d1d5db;border-radius:10px;overflow:hidden;color:#1e293b;box-shadow:0 4px 14px rgba(0,0,0,0.06);">
+          <div style="background:linear-gradient(135deg,#064e3b 0%,#047857 60%,#10b981 100%);padding:26px 28px;color:#ffffff;">
+            <div style="font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:#a7f3d0;font-weight:600;margin-bottom:4px;">AUTHORIZED DEALER CRM SYSTEM</div>
+            <div style="font-size:26px;font-weight:800;letter-spacing:0.5px;margin-bottom:4px;color:#ffffff;">AGUNG TOYOTA GIANYAR</div>
+            <div style="font-size:13.5px;color:#ecfdf5;font-weight:400;">Pengingat Follow Up Kedatangan Part (Notifikasi Sales)</div>
+          </div>
+
+          <div style="padding:26px 28px;">
+            <div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:18px;">
+              🔔 [REMINDER FOLLOW UP KEDATANGAN PART - AGUNG TOYOTA GIANYAR]
+            </div>
+            <div style="font-size:14.5px;color:#1e293b;margin-bottom:6px;">
+              Halo <strong>[Nama Service Advisor],</strong>
+            </div>
+            <div style="font-size:14px;color:#334155;margin-bottom:18px;">
+              Berikut informasi kedatangan part untuk pelanggan Anda yang perlu di-follow up:
+            </div>
+
+            <div style="background:#f0fdf9;border:1px solid #ccfbf1;border-radius:12px;padding:8px 18px;margin-bottom:20px;">
+              <table style="width:100%;border-collapse:collapse;font-size:13.5px;color:#1e293b;">
+                <tr style="border-bottom:1px solid #d1fae5;">
+                  <td style="padding:11px 6px;width:28px;font-size:16px;">🚗</td>
+                  <td style="padding:11px 6px;width:195px;color:#475569;">Nomer Polisi</td>
+                  <td style="padding:11px 6px;width:15px;color:#475569;">:</td>
+                  <td style="padding:11px 6px;font-weight:700;color:#0f172a;">[Nomer Polisi]</td>
+                </tr>
+                <tr style="border-bottom:1px solid #d1fae5;">
+                  <td style="padding:11px 6px;font-size:16px;">👤</td>
+                  <td style="padding:11px 6px;color:#475569;">Nama Customer</td>
+                  <td style="padding:11px 6px;color:#475569;">:</td>
+                  <td style="padding:11px 6px;font-weight:700;color:#0f172a;">[Nama Customer]</td>
+                </tr>
+                <tr style="border-bottom:1px solid #d1fae5;">
+                  <td style="padding:11px 6px;font-size:16px;">📦</td>
+                  <td style="padding:11px 6px;color:#475569;">Tanggal kedatangan Part</td>
+                  <td style="padding:11px 6px;color:#475569;">:</td>
+                  <td style="padding:11px 6px;font-weight:700;color:#0f172a;">[Tanggal kedatangan Part]</td>
+                </tr>
+                <tr style="border-bottom:1px solid #d1fae5;">
+                  <td style="padding:11px 6px;font-size:16px;">📅</td>
+                  <td style="padding:11px 6px;color:#475569;">Tanggal Follow Up terakhir</td>
+                  <td style="padding:11px 6px;color:#475569;">:</td>
+                  <td style="padding:11px 6px;font-weight:700;color:#0f172a;">[Tanggal Follow Up terakhir]</td>
+                </tr>
+                <tr>
+                  <td style="padding:11px 6px;font-size:16px;">💬</td>
+                  <td style="padding:11px 6px;color:#475569;">Hasil follow up terakhir</td>
+                  <td style="padding:11px 6px;color:#475569;">:</td>
+                  <td style="padding:11px 6px;font-weight:700;color:#0f172a;">[Hasil follow up terakhir]</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="font-size:14px;color:#334155;line-height:1.55;">
+              Mohon segera melakukan follow up kepada pelanggan untuk memberikan informasi terbaru mengenai kedatangan part tersebut.
+            </div>
+          </div>
+
+          <div style="background:#f0fdf4;border-top:1px solid #bbf7d0;padding:13px 28px;font-size:12px;color:#475569;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div><strong style="color:#065f46;">Agung Toyota Gianyar</strong> &bull; Jl. Bypass Dharma Giri, Gianyar, Bali</div>
+            <div style="color:#64748b;">| &nbsp; Design By : <strong style="color:#065f46;">FEB</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         SECTION 4: MANAJEMEN PENGGUNA (USERS & AUTENTIKASI SA / KABENG)
+         ====================================================================== -->
+    <section id="sectionUsers" class="no-print hidden">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              <span>👥 Manajemen Akun Pengguna (Username &amp; Password)</span>
+            </div>
+            <div class="card-subtitle">
+              Daftarkan akun login untuk masing-masing Service Advisor (SA), Kepala Bengkel (Kabeng), dan Partman agar akses aplikasi aman dan terpantau.
+            </div>
+          </div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="fetchUsersFromServer(true)">
+              ↻ Muat Ulang Daftar User
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="saveUsersToServer(true)">
+              💾 Simpan &amp; Sinkronkan ke Server
+            </button>
+          </div>
+        </div>
+
+        <!-- FORM TAMBAH / DAFTARKAN / EDIT USER -->
+        <div id="userFormContainer" style="background:#f8fafc;padding:1.15rem;border-radius:10px;border:1px solid var(--border);margin-bottom:1.35rem;">
+          <div style="font-weight:800;font-size:0.92rem;color:#09090b;margin-bottom:0.75rem;display:flex;align-items:center;justify-content:space-between;">
+            <span id="userFormTitle">➕ Form Tambah / Daftarkan Pengguna Baru</span>
+            <span id="editingUserBadge" style="display:none;font-size:0.72rem;background:#e60012;color:#fff;padding:2px 8px;border-radius:4px;font-weight:800;">✏️ Mode Edit Pengguna</span>
+          </div>
+
+          <form id="formAddUser" onsubmit="handleAddNewUser(event)">
+            <input type="hidden" id="editOriginalUsername" value="" />
+            <div class="form-grid">
+              <div class="field-group col-3">
+                <label class="field-label" for="newUserUsername">
+                  <span>Username *</span>
+                </label>
+                <input
+                  type="text"
+                  id="newUserUsername"
+                  class="input"
+                  placeholder="Contoh: sa_ajs, kabeng"
+                  required
+                />
+              </div>
+
+              <div class="field-group col-3">
+                <label class="field-label" for="newUserPassword">
+                  <span>Password *</span>
+                </label>
+                <div style="position:relative;">
+                  <input
+                    type="password"
+                    id="newUserPassword"
+                    class="input"
+                    placeholder="Minimal 4 karakter"
+                    required
+                    style="padding-right:2.2rem;"
+                  />
+                  <button
+                    type="button"
+                    onclick="togglePasswordVisibility('newUserPassword', this)"
+                    style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#64748b;font-size:0.9rem;"
+                    title="Lihat / Sembunyikan Password"
+                  >👁</button>
+                </div>
+              </div>
+
+              <div class="field-group col-3">
+                <label class="field-label" for="newUserName">
+                  <span>Nama Lengkap / Panggilan *</span>
+                </label>
+                <input
+                  type="text"
+                  id="newUserName"
+                  class="input"
+                  placeholder="Contoh: I Putu Widana (SA)"
+                  required
+                />
+              </div>
+
+              <div class="field-group col-3">
+                <label class="field-label" for="newUserRole">
+                  <span>Role / Hak Akses *</span>
+                </label>
+                <select id="newUserRole" class="select" required>
+                  <option value="ADMIN_PARTMAN">Admin &amp; Partman (Akses Penuh)</option>
+                  <option value="KABENG">Kepala Bengkel (Kabeng)</option>
+                  <option value="SA_AJS">Service Advisor (Sheet AJS)</option>
+                  <option value="SA_AYU">Service Advisor (Sheet AYU)</option>
+                  <option value="SA_FIK">Service Advisor (Sheet FIK)</option>
+                  <option value="SA_WBN">Service Advisor (Sheet WBN)</option>
+                  <option value="SA_OTHER">Service Advisor (Sheet OTHER)</option>
+                  <option value="SA_ALL">Service Advisor (Semua Sheet)</option>
+                </select>
+              </div>
+
+              <div class="field-group col-12" style="display:flex;justify-content:flex-end;gap:0.5rem;">
+                <button
+                  type="button"
+                  id="btnCancelEditUser"
+                  class="btn btn-outline"
+                  style="display:none;padding:0.65rem 1.2rem;"
+                  onclick="cancelEditUser()"
+                >
+                  ✖ Batal Edit
+                </button>
+                <button
+                  type="submit"
+                  id="btnSubmitUser"
+                  class="btn btn-primary"
+                  style="padding:0.65rem 1.4rem;"
+                >
+                  ➕ Daftarkan Pengguna Baru
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- TABEL DAFTAR USER TERDAFTAR -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.65rem;flex-wrap:wrap;gap:0.5rem;">
+          <div>
+            <span style="font-weight:800;font-size:0.95rem;">Daftar Akun Pengguna Aktif</span>
+            <span style="font-size:0.78rem;color:#64748b;margin-left:0.4rem;">Hanya pengguna yang terdaftar di bawah ini yang dapat login ke aplikasi.</span>
+          </div>
+        </div>
+
+        <div class="parts-table-wrap">
+          <table class="parts-table">
+            <thead>
+              <tr>
+                <th style="width:40px;text-align:center;">No</th>
+                <th style="width:140px;">Username</th>
+                <th style="width:200px;">Nama Pengguna</th>
+                <th style="width:220px;">Role / Jabatan</th>
+                <th style="width:140px;">Password</th>
+                <th style="width:110px;text-align:center;">Status</th>
+                <th style="width:145px;text-align:center;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="usersTbody">
+              <!-- Diisi secara dinamis oleh app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         PRINT-ONLY CONTAINER (Tampil saat dialog Print Browser aktif)
+         ====================================================================== -->
+    <section id="printOnlySection" class="print-only-container hidden"></section>
+
+  </main>
+
+  <!-- POP-UP PERINGATAN H+7 UNTUK STATUS ORDER "NOT FIX" -->
+  <div id="notFixReminderModal" class="modal-backdrop hidden no-print" onclick="if(event.target===this) closeNotFixPopup(false)">
+    <div class="modal-box" style="max-width:780px;padding:0;overflow:hidden;border:2px solid #e60012;box-shadow:0 24px 48px rgba(9,9,11,0.55);">
+      <!-- Header Pop-Up Gaya Toyota Gazoo Racing -->
+      <div style="background:linear-gradient(115deg,#09090b 0%,#18181b 55%,#7f1d1d 88%,#e60012 100%);color:#ffffff;padding:1.1rem 1.35rem;border-bottom:3px solid #e60012;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">
+        <div>
+          <div style="display:flex;align-items:center;gap:0.55rem;font-size:1.05rem;font-weight:900;letter-spacing:0.01em;">
+            <span>⚠️ PERINGATAN H+7: ORDER MASIH BERSTATUS &ldquo;NOT FIX&rdquo;</span>
+          </div>
+          <div id="notFixModalSubtitle" style="font-size:0.8rem;color:#fca5a5;margin-top:0.2rem;font-weight:600;">
+            Daftar No. Polisi yang sudah &ge; 7 hari sejak terinput di Monitoring SOP namun belum Fix Order.
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" style="background:rgba(255,255,255,0.12);color:#fff;border-color:rgba(255,255,255,0.3);" onclick="closeNotFixPopup(false)">
+          ✕
+        </button>
+      </div>
+
+      <!-- Isi Daftar Kartu Order NOT FIX >= H+7 -->
+      <div id="notFixModalList" style="padding:1.15rem 1.35rem;max-height:62vh;overflow-y:auto;background:#f4f5f8;display:flex;flex-direction:column;gap:0.85rem;">
+        <!-- Dirender secara dinamis oleh app.js -->
+      </div>
+
+      <!-- Footer Pop-Up -->
+      <div style="background:#18181b;color:#e4e4e7;padding:0.85rem 1.35rem;border-top:1px solid #27272a;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.65rem;">
+        <button type="button" class="btn btn-outline btn-sm" style="background:transparent;color:#fca5a5;border-color:#7f1d1d;" onclick="closeNotFixPopup(true)">
+          🔕 Ingatkan Lagi Besok
+        </button>
+        <div style="display:flex;align-items:center;gap:0.55rem;">
+          <button type="button" class="btn btn-primary btn-sm" onclick="closeNotFixPopup(false)">
+            Tutup Pop-Up
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PENGATURAN & PANDUAN PASTE GOOGLE APPS SCRIPT API -->
+  <div id="apiSetupModal" class="modal-backdrop hidden no-print">
+    <div class="modal-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--border);">
+        <h3 style="font-size:1.05rem;font-weight:800;">⚙ Pengaturan Koneksi Google Apps Script API</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeApiModal()">✕ Tutup</button>
+      </div>
+
+      <div style="font-size:0.86rem;color:#334155;display:flex;flex-direction:column;gap:0.85rem;">
+        <div style="background:#f8fafc;border:1px solid #cbd5e1;padding:0.85rem;border-radius:8px;">
+          <div style="font-weight:700;color:#0f172a;margin-bottom:0.3rem;">Status Pembacaan Data Saat Ini:</div>
+          <p style="font-size:0.8rem;color:#475569;">
+            Aplikasi ini <strong>sudah langsung terhubung untuk membaca data live</strong> dari Spreadsheet 1 (<code>RAW</code>, <code>SOP LEMBAR1</code>) dan Spreadsheet 2 (<code>AJS</code>, <code>AYU</code>, <code>FIK</code>, <code>WBN</code>, <code>OTHER</code>).
+            Agar tombol <strong>"Kirim ke Monitoring"</strong> dan <strong>"Simpan Follow Up"</strong> dapat menulis langsung ke baris Google Spreadsheet Anda dari Vercel/HP/PC, tempelkan <strong>URL Web App Apps Script</strong> di bawah ini:
+          </p>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="inputApiUrl">Google Apps Script Web App URL</label>
+          <input
+            type="url"
+            id="inputApiUrl"
+            class="input"
+            placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+          />
+          <small style="font-size:0.74rem;color:#64748b;">
+            Tips: Setelah disimpan, URL ini tersimpan di perangkat Anda. Anda juga bisa memasukkannya di file <code>config.js</code> (bagian <code>APPS_SCRIPT_URL</code>) sebelum push ke GitHub/Vercel agar seluruh HP SA langsung terhubung otomatis.
+          </small>
+        </div>
+
+        <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveApiUrlFromModal()">
+            💾 Simpan URL API
+          </button>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:0.25rem 0;" />
+
+        <div>
+          <div style="font-weight:800;margin-bottom:0.4rem;color:#0f172a;">
+            Panduan Di Mana &amp; Cara Paste Script API (Tanpa Menghapus Script Lama):
+          </div>
+          <ol style="margin-left:1.2rem;font-size:0.8rem;line-height:1.6;color:#334155;">
+            <li>Buka salah satu Google Spreadsheet Anda (misal <strong>Spreadsheet 1 - Form Order</strong>).</li>
+            <li>Klik menu <strong>Extensions (Ekstensi) &rarr; Apps Script</strong> di bagian atas.</li>
+            <li><strong>TIDAK PERLU menghapus kode lama:</strong> Cukup lihat panel sebelah kiri (<strong>Files</strong>), klik tanda <strong><code>+</code> (Add a file) &rarr; Script</strong>, lalu beri nama <code>WebAppAPI</code>.</li>
+            <li>Salin kode dari file <code>google-apps-script/WebAppAPI.gs</code> di folder proyek ini (atau klik tombol <strong>Salin Kode Script API</strong> di bawah), lalu <em>paste</em> ke dalam file <code>WebAppAPI.gs</code> tersebut dan tekan <code>Ctrl + S</code>.</li>
+            <li>Klik tombol biru <strong>Deploy &rarr; New deployment</strong> di kanan atas Apps Script.</li>
+            <li>Pilih jenis <strong>Web app</strong>:
+              <ul style="margin-left:1.1rem;">
+                <li><strong>Execute as:</strong> <code>Me</code> (Email Anda)</li>
+                <li><strong>Who has access:</strong> <code>Anyone</code> (Siapa saja)</li>
+              </ul>
+            </li>
+            <li>Klik <strong>Deploy</strong>, salin <strong>Web app URL</strong> yang muncul, lalu tempelkan pada kolom di atas.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL / OVERLAY LOGIN KE APLIKASI WEB -->
+  <div id="loginModalOverlay" class="modal-backdrop no-print" style="position:fixed;inset:0;background:rgba(9,9,11,0.88);backdrop-filter:blur(8px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1.25rem;">
+    <div style="background:#ffffff;border-radius:14px;box-shadow:0 24px 50px rgba(0,0,0,0.5);border:1.5px solid #e4e4e7;border-top:6px solid #e60012;max-width:420px;width:100%;padding:2rem 1.85rem;color:#09090b;">
+      <div style="text-align:center;margin-bottom:1.5rem;">
+        <img src="agung-toyota-logo.png" alt="Agung Toyota Gianyar" style="height:32px;margin-bottom:0.75rem;display:inline-block;" />
+        <h2 style="font-size:1.18rem;font-weight:900;letter-spacing:0.5px;color:#09090b;margin-bottom:0.25rem;">SISTEM MONITORING SOP</h2>
+        <p style="font-size:0.78rem;color:#64748b;margin:0;">PT. Agung Automall Gianyar &bull; Silakan Masuk</p>
+      </div>
+
+      <form id="loginForm" onsubmit="handleUserLogin(event)">
+        <div style="margin-bottom:1rem;">
+          <label style="display:block;font-size:0.78rem;font-weight:800;color:#334155;text-transform:uppercase;margin-bottom:0.35rem;">Username</label>
+          <input
+            type="text"
+            id="loginUsernameInput"
+            class="input"
+            style="width:100%;padding:0.65rem 0.85rem;font-size:0.9rem;"
+            placeholder="Masukkan username..."
+            required
+            autocomplete="username"
+          />
+        </div>
+
+        <div style="margin-bottom:1.25rem;">
+          <label style="display:block;font-size:0.78rem;font-weight:800;color:#334155;text-transform:uppercase;margin-bottom:0.35rem;">Password</label>
+          <div style="position:relative;">
+            <input
+              type="password"
+              id="loginPasswordInput"
+              class="input"
+              style="width:100%;padding:0.65rem 2.2rem 0.65rem 0.85rem;font-size:0.9rem;"
+              placeholder="Masukkan password..."
+              required
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              onclick="togglePasswordVisibility('loginPasswordInput', this)"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#64748b;font-size:0.95rem;"
+              title="Lihat / Sembunyikan Password"
+            >👁</button>
+          </div>
+        </div>
+
+        <div id="loginErrorMessage" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;padding:0.5rem 0.75rem;border-radius:6px;font-size:0.78rem;font-weight:700;margin-bottom:1rem;text-align:center;"></div>
+
+        <button type="submit" id="btnLoginSubmit" class="btn btn-primary" style="width:100%;padding:0.75rem;font-size:0.95rem;font-weight:800;">
+          🔒 Masuk ke Aplikasi
+        </button>
+      </form>
+
+      <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px dashed #e2e8f0;font-size:0.72rem;color:#64748b;text-align:center;line-height:1.5;">
+        <div><strong>Contoh Akun Siap Pakai:</strong></div>
+        <div style="margin-top:0.25rem;">Admin/Partman: <code>febri</code> / <code>admin123</code></div>
+        <div>Kepala Bengkel: <code>kabeng</code> / <code>kabeng123</code></div>
+        <div>SA: <code>sa_ajs</code>, <code>sa_ayu</code>, <code>sa_fik</code>, <code>sa_wbn</code> (pass: kode + 123)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDIT PROFIL / USERNAME & PASSWORD SENDIRI -->
+  <div id="myProfileModal" class="modal-backdrop hidden no-print" onclick="if(event.target===this) closeMyProfileModal()">
+    <div style="background:#ffffff;border-radius:14px;box-shadow:0 24px 50px rgba(0,0,0,0.5);border:1.5px solid #e4e4e7;border-top:6px solid #e60012;max-width:440px;width:100%;padding:1.85rem 1.65rem;color:#09090b;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+        <div>
+          <h3 style="font-size:1.1rem;font-weight:900;color:#09090b;margin:0;">✏️ Ubah Akun &amp; Password Saya</h3>
+          <p style="font-size:0.75rem;color:#64748b;margin:0.2rem 0 0;">Perbarui username atau password login Anda</p>
+        </div>
+        <button type="button" onclick="closeMyProfileModal()" style="background:none;border:none;font-size:1.35rem;cursor:pointer;color:#64748b;">✕</button>
+      </div>
+
+      <form id="myProfileForm" onsubmit="handleSaveMyProfile(event)">
+        <div style="margin-bottom:0.9rem;">
+          <label style="display:block;font-size:0.76rem;font-weight:800;color:#334155;text-transform:uppercase;margin-bottom:0.3rem;">Username</label>
+          <input
+            type="text"
+            id="myProfileUsernameInput"
+            class="input"
+            style="width:100%;"
+            required
+          />
+        </div>
+
+        <div style="margin-bottom:0.9rem;">
+          <label style="display:block;font-size:0.76rem;font-weight:800;color:#334155;text-transform:uppercase;margin-bottom:0.3rem;">Nama Lengkap / Tampilan</label>
+          <input
+            type="text"
+            id="myProfileNameInput"
+            class="input"
+            style="width:100%;"
+            required
+          />
+        </div>
+
+        <div style="margin-bottom:1.25rem;">
+          <label style="display:block;font-size:0.76rem;font-weight:800;color:#334155;text-transform:uppercase;margin-bottom:0.3rem;">Password Baru</label>
+          <div style="position:relative;">
+            <input
+              type="password"
+              id="myProfilePasswordInput"
+              class="input"
+              style="width:100%;padding-right:2.2rem;"
+              placeholder="Minimal 4 karakter"
+              required
+            />
+            <button
+              type="button"
+              onclick="togglePasswordVisibility('myProfilePasswordInput', this)"
+              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#64748b;font-size:0.9rem;"
+              title="Lihat / Sembunyikan Password"
+            >👁</button>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:0.5rem;">
+          <button type="button" class="btn btn-outline" onclick="closeMyProfileModal()">Batal</button>
+          <button type="submit" class="btn btn-primary">💾 Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer" class="toast-container no-print"></div>
+
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
