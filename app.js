@@ -347,7 +347,7 @@ function switchMainTab(tab) {
     if (tab === 'partman') {
       subtitleEl.textContent = 'Form Special Order Part';
     } else if (tab === 'monitoring') {
-      subtitleEl.textContent = `Monitoring SOP — Sheet ${STATE.activeSaSheet}`;
+      subtitleEl.textContent = `Monitoring SOP — ${STATE.activeSaSheet}`;
     } else if (tab === 'email') {
       subtitleEl.textContent = 'Pengaturan Email SA & Reminder H+7';
     } else if (tab === 'users') {
@@ -381,11 +381,11 @@ function handleSaChange() {
     otherBox.classList.remove('hidden');
     picInput.setAttribute('required', 'required');
     const picVal = (picInput.value || '').trim().toUpperCase();
-    targetLabel.textContent = picVal ? `Sheet OTHER • PIC: ${picVal}` : 'Sheet OTHER';
+    targetLabel.textContent = picVal ? `OTHER • PIC: ${picVal}` : 'OTHER';
   } else {
     otherBox.classList.add('hidden');
     picInput.removeAttribute('required');
-    targetLabel.textContent = `Sheet ${sa}`;
+    targetLabel.textContent = `${sa}`;
   }
 
   renderPrintSheets();
@@ -643,6 +643,10 @@ function loadSampleOrder(silent) {
   if (orderNoEl) orderNoEl.value = '';
   const lokasiEl = document.getElementById('inputLokasiNote');
   if (lokasiEl) lokasiEl.value = '';
+  const dpEl = document.getElementById('selectDpStatus');
+  if (dpEl) dpEl.value = 'NOT FIX';
+  const statusEl = document.getElementById('selectOrderStatus');
+  if (statusEl) statusEl.value = 'NOT FIX';
   document.getElementById('inputFormNote').value = '';
   setDefaultFormDates();
 
@@ -672,6 +676,10 @@ function resetOrderForm() {
   if (orderNoEl) orderNoEl.value = '';
   const lokasiEl = document.getElementById('inputLokasiNote');
   if (lokasiEl) lokasiEl.value = '';
+  const dpEl = document.getElementById('selectDpStatus');
+  if (dpEl) dpEl.value = 'NOT FIX';
+  const statusEl = document.getElementById('selectOrderStatus');
+  if (statusEl) statusEl.value = 'NOT FIX';
   document.getElementById('inputFormNote').value = '';
   setDefaultFormDates();
 
@@ -748,7 +756,7 @@ async function handleOrderSubmit(e) {
       followUp1: '',
       followUp2: '',
       followUp3: '',
-      status: orderData.orderStatus || 'IN PROCESS',
+      status: orderData.orderStatus || 'NOT FIX',
       saPic: picForColR,
       isLocal: true
     }));
@@ -1645,7 +1653,7 @@ function selectSaMonitoringTab(saName) {
 
   const subtitleEl = document.getElementById('activeMenuHeaderSubtitle');
   if (subtitleEl && STATE.mainTab === 'monitoring') {
-    subtitleEl.textContent = `Menu Aktif: Monitoring SOP — Sheet ${saName}`;
+    subtitleEl.textContent = `Menu Aktif: Monitoring SOP — ${saName}`;
   }
 
   // Tampilkan filter PIC khusus jika tab yang dibuka adalah OTHER
@@ -1730,7 +1738,7 @@ function renderSaArrivalKpi(saName, allGroups) {
           <span style="display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:9px;background:rgba(22,163,74,0.22);color:#4ade80;font-size:1.4rem;border:1.5px solid rgba(74,222,128,0.35);">📦</span>
           <div>
             <div style="font-size:0.78rem;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#86efac;">
-              SPAREPART DATANG LENGKAP (ATA) &bull; SHEET ${escapeHtml(saName)}
+              SPAREPART DATANG LENGKAP (ATA) &bull; ${escapeHtml(saName)}
             </div>
             <div style="font-size:0.72rem;color:#a1a1aa;margin-top:0.1rem;">
               Daftar pesanan di mana <strong>SEMUA</strong> item sparepart sudah tiba di bengkel (Siap Buka SO / Hubungi Pelanggan)
@@ -1826,10 +1834,10 @@ function renderMonitoringList() {
     container.innerHTML = `
       <div style="text-align:center;padding:2.5rem 1rem;color:#64748b;">
         <div style="font-size:1.05rem;font-weight:700;color:#334155;margin-bottom:0.3rem;">
-          Tidak ada data order yang cocok di Sheet ${escapeHtml(saName)}
+          Tidak ada data order yang cocok untuk SA ${escapeHtml(saName)}
         </div>
         <div style="font-size:0.84rem;">
-          Coba ubah kata kunci pencarian atau pilih tab Sheet SA lainnya.
+          Coba ubah kata kunci pencarian atau pilih tab SA lainnya.
         </div>
       </div>
     `;
@@ -3386,6 +3394,22 @@ function updateProfileBanner(user) {
   const roleEl = document.getElementById('drawerProfileRole');
   if (nameEl) nameEl.textContent = user.name || user.username;
   if (roleEl) roleEl.textContent = user.roleName || user.role;
+
+  // Header TPOS User Greeting & Live Date (Sesuai Gambar 1: Hi, NAMA)
+  const tposUserEl = document.getElementById('tposHeaderUserName');
+  if (tposUserEl) {
+    tposUserEl.textContent = `Hi, ${(user.name || user.username).toUpperCase()}`;
+  }
+  const tposDateEl = document.getElementById('tposHeaderDateTime');
+  if (tposDateEl) {
+    const now = new Date();
+    const d = String(now.getDate()).padStart(2, '0');
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const y = now.getFullYear();
+    const h = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    tposDateEl.textContent = `${d}/${m}/${y} ${h}:${min}`;
+  }
 }
 
 function renderUsersTable() {

@@ -20,17 +20,26 @@
           id="btnOpenDrawer"
           class="hamburger-btn"
           onclick="toggleNavDrawer(true)"
-          title="Buka Menu Navigasi (Form Order, Monitoring SOP, Pengaturan Email)"
+          title="Buka Menu Navigasi"
           aria-label="Buka Menu Navigasi"
         >
           <span class="hamburger-line"></span>
           <span class="hamburger-line"></span>
           <span class="hamburger-line"></span>
         </button>
-        <div class="brand-badge">SOP</div>
+        
+        <!-- Toyota Oval White Logo (TPOS Style) -->
+        <div class="tpos-logo-wrap">
+          <svg viewBox="0 0 48 34" width="34" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="24" cy="17" rx="22" ry="15" stroke="#ffffff" stroke-width="2.5"/>
+            <ellipse cx="24" cy="17" rx="9" ry="14" stroke="#ffffff" stroke-width="2.2"/>
+            <ellipse cx="24" cy="11" rx="16" ry="6.5" stroke="#ffffff" stroke-width="2.2"/>
+          </svg>
+        </div>
+
         <div>
-          <div class="brand-title">PT. Agung Automall Gianyar</div>
-          <div class="brand-subtitle" id="activeMenuHeaderSubtitle">Form Special Order Part</div>
+          <div class="brand-title">Toyota - Parts Online System <span class="tpos-tag">[SOP]</span></div>
+          <div class="brand-subtitle" id="activeMenuHeaderSubtitle">PT. Agung Automall Gianyar • Form Special Order Part</div>
         </div>
       </div>
 
@@ -45,14 +54,24 @@
         >
           ⚠️ <span id="notFixAlertCount">0</span> NOT FIX (H+7)
         </button>
+
+        <!-- TPOS User Greeting & Live Date (Sesuai Gambar 1) -->
+        <div class="tpos-user-greeting">
+          <span class="tpos-bell-icon" title="Notifikasi Sistem">🔔</span>
+          <div class="tpos-user-meta">
+            <span class="tpos-user-name" id="tposHeaderUserName">Hi, FEBRI RACHMADANI</span>
+            <span class="tpos-date-time" id="tposHeaderDateTime">26/10/2026</span>
+          </div>
+        </div>
+
         <div id="syncStatusPill" class="sync-pill" title="Status koneksi ke Google Spreadsheet">
           <span id="syncDot" class="sync-dot"></span>
-          <span id="syncText">Terhubung ke Google Sheets</span>
+          <span id="syncText">Save Success</span>
         </div>
-        <button type="button" id="btnRefreshData" class="btn btn-outline btn-sm" style="background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.2);">
-          ↻ Refresh Data
+        <button type="button" id="btnRefreshData" class="btn btn-outline btn-sm">
+          ↻ Refresh
         </button>
-        <button type="button" id="btnCleanupGhostRows" class="btn btn-outline btn-sm" onclick="triggerCleanupGhostRows()" style="background:rgba(239,68,68,0.15);color:#fca5a5;border-color:rgba(239,68,68,0.4);" title="Bersihkan baris-baris kosong di spreadsheet monitoring yang sempat terisi data tidak sengaja">
+        <button type="button" id="btnCleanupGhostRows" class="btn btn-outline btn-sm" onclick="triggerCleanupGhostRows()" style="display:none;" title="Bersihkan baris-baris kosong di spreadsheet monitoring yang sempat terisi data tidak sengaja">
           🧹 Bersihkan Baris Kosong
         </button>
         <button type="button" id="btnOpenApiModal" class="btn btn-primary btn-sm">
@@ -122,13 +141,13 @@
         <span class="drawer-menu-plus">+</span>
       </button>
 
-      <!-- Sub-menu pintasan langsung ke masing-masing Sheet SA di Monitoring SOP -->
+      <!-- Sub-menu pintasan langsung ke masing-masing SA di Monitoring SOP (Tanpa kata 'Sheet') -->
       <div class="drawer-submenu">
-        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('AJS')">› Sheet AJS</button>
-        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('AYU')">› Sheet AYU</button>
-        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('FIK')">› Sheet FIK</button>
-        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('WBN')">› Sheet WBN</button>
-        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('OTHER')">› Sheet OTHER (PIC Manual)</button>
+        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('AJS')">› AJS</button>
+        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('AYU')">› AYU</button>
+        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('FIK')">› FIK</button>
+        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('WBN')">› WBN</button>
+        <button type="button" class="drawer-subitem" onclick="selectSaSheetFromDrawer('OTHER')">› OTHER (PIC Manual)</button>
       </div>
 
       <button type="button" id="tabBtnEmail" class="drawer-menu-item" onclick="selectMenuFromDrawer('email')">
@@ -339,6 +358,63 @@
               />
             </div>
 
+            <!-- BARIS 3: STATUS DP, STATUS ORDER, TYPE/NO ORDER & LOKASI RAK -->
+            <!-- 9. STATUS DP -->
+            <div class="field-group col-3">
+              <label class="field-label" for="selectDpStatus">
+                <span>Status DP *</span>
+              </label>
+              <select id="selectDpStatus" class="select" required onchange="renderPrintSheets()">
+                <option value="NOT FIX" selected>NOT FIX</option>
+                <option value="LUNAS">LUNAS</option>
+                <option value="DP">DP</option>
+                <option value="KNTRK">KNTRK</option>
+                <option value="INAP">INAP</option>
+                <option value="W/O DP">W/O DP</option>
+              </select>
+            </div>
+
+            <!-- 10. STATUS ORDER -->
+            <div class="field-group col-3">
+              <label class="field-label" for="selectOrderStatus">
+                <span>Status Order *</span>
+              </label>
+              <select id="selectOrderStatus" class="select" required onchange="renderPrintSheets()">
+                <option value="NOT FIX" selected>NOT FIX</option>
+                <option value="IN PROCESS">IN PROCESS</option>
+                <option value="ARRIVAL">ARRIVAL</option>
+                <option value="BO">BO</option>
+              </select>
+            </div>
+
+            <!-- 11. TYPE / NO. ORDER (OPSIONAL) -->
+            <div class="field-group col-3">
+              <label class="field-label" for="inputOrderNo">
+                <span>Type / No. Order</span>
+              </label>
+              <input
+                type="text"
+                id="inputOrderNo"
+                class="input input-uppercase"
+                placeholder="Contoh: GR221026"
+                oninput="renderPrintSheets()"
+              />
+            </div>
+
+            <!-- 12. LOKASI RAK / NOTE (OPSIONAL) -->
+            <div class="field-group col-3">
+              <label class="field-label" for="inputLokasiNote">
+                <span>Lokasi Rak / Note</span>
+              </label>
+              <input
+                type="text"
+                id="inputLokasiNote"
+                class="input input-uppercase"
+                placeholder="Contoh: E1, B2, C3"
+                oninput="renderPrintSheets()"
+              />
+            </div>
+
           </div>
 
           <!-- DAFTAR MULTI-ITEM PART -->
@@ -430,26 +506,26 @@
          ====================================================================== -->
     <section id="sectionMonitoring" class="no-print hidden">
 
-      <!-- PILIHAN SHEET SA (AJS, AYU, FIK, WBN, OTHER) -->
+      <!-- PILIHAN SA (AJS, AYU, FIK, WBN, OTHER) — TANPA KATA 'Sheet' -->
       <div class="sa-tabs" id="saSheetTabs">
         <button type="button" class="sa-tab active" data-sa="AJS" onclick="selectSaMonitoringTab('AJS')">
-          <span>Sheet AJS</span>
+          <span>AJS</span>
           <span class="sa-count-badge" id="badgeCountAJS">0</span>
         </button>
         <button type="button" class="sa-tab" data-sa="AYU" onclick="selectSaMonitoringTab('AYU')">
-          <span>Sheet AYU</span>
+          <span>AYU</span>
           <span class="sa-count-badge" id="badgeCountAYU">0</span>
         </button>
         <button type="button" class="sa-tab" data-sa="FIK" onclick="selectSaMonitoringTab('FIK')">
-          <span>Sheet FIK</span>
+          <span>FIK</span>
           <span class="sa-count-badge" id="badgeCountFIK">0</span>
         </button>
         <button type="button" class="sa-tab" data-sa="WBN" onclick="selectSaMonitoringTab('WBN')">
-          <span>Sheet WBN</span>
+          <span>WBN</span>
           <span class="sa-count-badge" id="badgeCountWBN">0</span>
         </button>
         <button type="button" class="sa-tab" data-sa="OTHER" onclick="selectSaMonitoringTab('OTHER')">
-          <span>Sheet OTHER (PIC Manual)</span>
+          <span>OTHER (PIC Manual)</span>
           <span class="sa-count-badge" id="badgeCountOTHER">0</span>
         </button>
       </div>

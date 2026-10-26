@@ -1,24 +1,26 @@
 :root {
-  --primary: #e60012;
-  --primary-dark: #b8000e;
-  --primary-light: #fef2f2;
-  --gr-black: #09090b;
-  --gr-carbon: #18181b;
-  --gr-gunmetal: #27272a;
-  --secondary: #18181b;
-  --bg-page: #eceff4;
+  --primary: #0284c7;           /* TPOS Sky / Cyan Blue */
+  --primary-dark: #0369a1;
+  --primary-light: #f0f9ff;
+  --accent-red: #e60012;         /* Iconic Toyota Red */
+  --tpos-navy: #0b2341;          /* TPOS Topbar & Sidebar Deep Navy */
+  --tpos-navy-dark: #07172b;     /* TPOS Submenu Deeper Navy */
+  --tpos-navy-active: #153966;   /* TPOS Active Item Navy */
+  --tpos-navy-light: #1b457b;
+  --secondary: #1e293b;
+  --bg-page: #f0f4f8;            /* TPOS Clean Enterprise Light Gray-Blue */
   --bg-card: #ffffff;
-  --border: #d4d8e2;
-  --text-main: #09090b;
-  --text-muted: #52525b;
+  --border: #dce5ee;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
   --success: #16a34a;
   --success-bg: #dcfce7;
   --warning: #d97706;
   --warning-bg: #fef3c7;
-  --info: #2563eb;
-  --info-bg: #dbeafe;
-  --radius: 12px;
-  --shadow: 0 8px 24px -4px rgba(9, 9, 11, 0.1), 0 3px 8px -2px rgba(230, 0, 18, 0.05);
+  --info: #0284c7;
+  --info-bg: #e0f2fe;
+  --radius: 8px;
+  --shadow: 0 1px 4px rgba(11, 35, 65, 0.08), 0 4px 12px rgba(11, 35, 65, 0.04);
 }
 
 * {
@@ -30,31 +32,26 @@
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-page);
-  background-image:
-    radial-gradient(at 0% 0%, rgba(230, 0, 18, 0.07) 0px, transparent 45%),
-    radial-gradient(at 100% 0%, rgba(9, 9, 11, 0.08) 0px, transparent 50%),
-    linear-gradient(180deg, #e4e7ee 0%, #f1f3f8 40%, #eceff4 100%);
-  background-attachment: fixed;
   color: var(--text-main);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Header & Topbar — Nuansa Hitam-Merah Toyota Gazoo Racing (GR) */
+/* Header & Topbar — Konsep Toyota Parts Online System (TPOS) */
 .app-header {
-  background: linear-gradient(115deg, #09090b 0%, #18181b 58%, #450a0a 85%, #991b1b 100%);
+  background: var(--tpos-navy);
   color: #fff;
   position: sticky;
   top: 0;
   z-index: 40;
-  border-bottom: 3px solid var(--primary);
-  box-shadow: 0 6px 20px rgba(9, 9, 11, 0.38);
+  border-bottom: 2px solid #0284c7;
+  box-shadow: 0 2px 10px rgba(11, 35, 65, 0.35);
 }
 
 .header-inner {
   max-width: 1360px;
   margin: 0 auto;
-  padding: 0.85rem 1.25rem;
+  padding: 0.75rem 1.25rem;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -68,102 +65,134 @@ body {
   gap: 0.85rem;
 }
 
-.brand-badge {
-  background: linear-gradient(135deg, #e60012 0%, #dc2626 52%, #09090b 52%, #18181b 100%);
-  color: #fff;
-  font-weight: 900;
-  font-size: 0.95rem;
-  padding: 0.55rem 0.82rem;
-  border-radius: 8px;
-  letter-spacing: 0.06em;
-  border: 1.5px solid rgba(255, 255, 255, 0.28);
-  box-shadow: 0 3px 12px rgba(230, 0, 18, 0.5);
+.tpos-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tpos-tag {
+  color: #38bdf8;
+  font-weight: 700;
+  font-size: 0.82rem;
+  margin-left: 4px;
 }
 
 .brand-title {
-  font-size: 1.06rem;
+  font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: -0.01em;
   color: #ffffff;
 }
 
 .brand-subtitle {
-  font-size: 0.78rem;
-  color: #fca5a5;
+  font-size: 0.76rem;
+  color: #94a3b8;
   font-weight: 600;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.65rem;
   flex-wrap: wrap;
+}
+
+/* TPOS User Info & Notification Header Widget (Sesuai Gambar 1) */
+.tpos-user-greeting {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tpos-bell-icon {
+  font-size: 1.05rem;
+}
+
+.tpos-user-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+
+.tpos-user-name {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.tpos-date-time {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-weight: 600;
 }
 
 .sync-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.76rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   padding: 0.38rem 0.75rem;
-  border-radius: 999px;
-  background: rgba(9, 9, 11, 0.55);
-  color: #f4f4f5;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
 }
 
 .sync-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 8px #22c55e;
+  background: #10b981;
 }
 
 .sync-dot.warn {
   background: #f59e0b;
-  box-shadow: 0 0 8px #f59e0b;
 }
 
-/* Tombol Hamburger (Garis 3) di Pojok Kiri Atas */
+/* Tombol Hamburger di Pojok Kiri Atas */
 .hamburger-btn {
   display: inline-flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   gap: 5px;
-  width: 42px;
-  height: 42px;
-  border-radius: 9px;
-  border: 1.5px solid rgba(230, 0, 18, 0.65);
-  background: rgba(24, 24, 27, 0.85);
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
   cursor: pointer;
   padding: 0;
   transition: all 0.18s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .hamburger-btn:hover {
-  background: var(--primary);
-  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #38bdf8;
 }
 
 .hamburger-line {
   display: block;
   width: 20px;
-  height: 2.5px;
+  height: 2px;
   background: #ffffff;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
-/* Slide-Out Sidebar Drawer — Toyota Gazoo Racing Edition */
+/* Slide-Out Sidebar Drawer — Konsep TPOS Navy */
 .drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(9, 9, 11, 0.68);
+  background: rgba(11, 35, 65, 0.65);
   z-index: 90;
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(2px);
 }
 
 .side-drawer {
@@ -173,11 +202,11 @@ body {
   bottom: 0;
   width: 300px;
   max-width: 86vw;
-  background: #121215;
-  color: #f4f4f5;
+  background: var(--tpos-navy);
+  color: #f8fafc;
   z-index: 95;
-  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.55);
-  border-right: 2px solid #e60012;
+  box-shadow: 8px 0 32px rgba(11, 35, 65, 0.6);
+  border-right: 2px solid #0284c7;
   display: flex;
   flex-direction: column;
   transform: translateX(-105%);
@@ -190,14 +219,14 @@ body {
 }
 
 .drawer-topbar {
-  background: linear-gradient(90deg, #09090b 0%, #7f1d1d 55%, #e60012 100%);
+  background: var(--tpos-navy-dark);
   color: #ffffff;
   padding: 0.85rem 1rem;
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .drawer-back-btn {
@@ -215,49 +244,26 @@ body {
   background: rgba(255, 255, 255, 0.18);
 }
 
-.drawer-logo-circle {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #e60012;
-  color: #ffffff;
-  border: 1.5px solid #ffffff;
-  font-weight: 900;
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: Georgia, serif;
-}
-
-.drawer-topbar-title {
-  font-weight: 800;
-  font-size: 1.02rem;
-  letter-spacing: 0.04em;
-  flex: 1;
-}
-
 .drawer-topbar-tag {
   font-size: 0.65rem;
   font-weight: 800;
-  background: rgba(9, 9, 11, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(2, 132, 199, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
   padding: 0.2rem 0.45rem;
   border-radius: 4px;
   letter-spacing: 0.04em;
 }
 
 .drawer-profile-banner {
-  background:
-    radial-gradient(circle at 88% 18%, rgba(230, 0, 18, 0.55) 0%, transparent 55%),
-    linear-gradient(135deg, #18181b 0%, #27272a 48%, #7f1d1d 85%, #b91c1c 100%);
+  background: linear-gradient(135deg, #0e2a4f 0%, #173d6e 100%);
   color: #ffffff;
   padding: 1.15rem 1rem 0.95rem;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
   position: relative;
-  border-bottom: 2px solid #e60012;
+  border-bottom: 2px solid #0284c7;
 }
 
 .drawer-avatar {
@@ -265,9 +271,9 @@ body {
   height: 48px;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid #e60012;
-  box-shadow: 0 3px 12px rgba(230, 0, 18, 0.45);
-  background: #18181b;
+  border: 2px solid #38bdf8;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+  background: #0b2341;
 }
 
 .drawer-profile-name {
@@ -278,16 +284,8 @@ body {
 
 .drawer-profile-role {
   font-size: 0.75rem;
-  color: #fca5a5;
+  color: #7dd3fc;
   font-weight: 600;
-}
-
-.drawer-profile-caret {
-  position: absolute;
-  right: 1rem;
-  bottom: 0.75rem;
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.9);
 }
 
 .drawer-menu-list {
@@ -301,7 +299,7 @@ body {
 .drawer-section-label {
   font-size: 0.68rem;
   font-weight: 800;
-  color: #a1a1aa;
+  color: #94a3b8;
   padding: 0.4rem 1.15rem 0.25rem;
   letter-spacing: 0.08em;
 }
@@ -316,7 +314,7 @@ body {
   gap: 0.85rem;
   text-align: left;
   cursor: pointer;
-  color: #e4e4e7;
+  color: #e2e8f0;
   transition: background 0.15s, color 0.15s;
 }
 
@@ -326,9 +324,9 @@ body {
 }
 
 .drawer-menu-item.active {
-  background: linear-gradient(90deg, rgba(230, 0, 18, 0.22) 0%, rgba(230, 0, 18, 0.04) 100%);
-  color: #ff4d5a;
-  border-left: 4px solid #e60012;
+  background: var(--tpos-navy-active);
+  color: #ffffff;
+  border-left: 4px solid var(--accent-red);   /* Toyota Red accent on left edge as shown in TPOS Gambar 1! */
 }
 
 .drawer-menu-icon {
@@ -352,53 +350,57 @@ body {
 
 .drawer-menu-desc {
   font-size: 0.72rem;
-  color: #a1a1aa;
+  color: #94a3b8;
 }
 
 .drawer-menu-plus {
   font-size: 1.05rem;
   font-weight: 700;
+  color: #38bdf8;
+}
+
+.drawer-menu-item.active .drawer-menu-plus {
   color: #e60012;
 }
 
 .drawer-submenu {
   display: flex;
   flex-direction: column;
-  padding: 0.2rem 0 0.4rem 3.1rem;
-  background: #09090b;
-  border-top: 1px solid #27272a;
-  border-bottom: 1px solid #27272a;
+  padding: 0.2rem 0 0.4rem 2.8rem;
+  background: var(--tpos-navy-dark);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .drawer-subitem {
   background: transparent;
   border: none;
   text-align: left;
-  padding: 0.42rem 0.75rem;
-  font-size: 0.8rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  color: #a1a1aa;
+  color: #94a3b8;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .drawer-subitem:hover {
   color: #ffffff;
-  background: rgba(230, 0, 18, 0.25);
+  background: var(--tpos-navy-active);
 }
 
 .drawer-divider {
   border: none;
-  border-top: 1px solid #27272a;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   margin: 0.45rem 1rem;
 }
 
 .drawer-footer {
   padding: 0.75rem 1.1rem;
   font-size: 0.72rem;
-  color: #a1a1aa;
-  background: #09090b;
-  border-top: 1px solid #27272a;
+  color: #94a3b8;
+  background: var(--tpos-navy-dark);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   text-align: center;
 }
 
@@ -426,7 +428,7 @@ body {
   background: var(--bg-card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  border-top: 4px solid var(--primary);
+  border-top: 3.5px solid var(--primary);
   box-shadow: var(--shadow);
   padding: 1.35rem;
   margin-bottom: 1.25rem;
@@ -446,7 +448,7 @@ body {
 .card-title {
   font-size: 1.12rem;
   font-weight: 800;
-  color: var(--gr-black);
+  color: var(--tpos-navy);
   display: flex;
   align-items: center;
   gap: 0.55rem;
@@ -455,10 +457,10 @@ body {
 .card-title::before {
   content: '';
   display: inline-block;
-  width: 6px;
-  height: 20px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #e60012 0%, #09090b 100%);
+  width: 5px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--primary);
 }
 
 .card-subtitle {
@@ -647,14 +649,14 @@ body {
 }
 
 .parts-table th {
-  background: linear-gradient(90deg, #09090b 0%, #18181b 100%);
-  color: #f4f4f5;
+  background: var(--tpos-navy);
+  color: #ffffff;
   font-size: 0.76rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   padding: 0.75rem 0.75rem;
-  border-bottom: 2.5px solid var(--primary);
+  border-bottom: 2px solid var(--primary);
   text-align: left;
 }
 
@@ -669,7 +671,7 @@ body {
 }
 
 .parts-table tfoot td {
-  background: #18181b;
+  background: var(--tpos-navy);
   color: #ffffff;
   font-weight: 800;
   padding: 0.85rem 0.75rem;
@@ -677,7 +679,7 @@ body {
 }
 
 #formGrandTotalCell {
-  color: #ff4d5a !important;
+  color: #38bdf8 !important;
   font-size: 1.05rem !important;
 }
 
@@ -688,7 +690,7 @@ body {
   justify-content: center;
   gap: 0.45rem;
   padding: 0.62rem 1.05rem;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 0.86rem;
   font-weight: 700;
   border: 1.5px solid transparent;
@@ -704,25 +706,26 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #e60012 0%, #b91c1c 100%);
+  background: #0284c7;
   color: #fff;
-  box-shadow: 0 3px 10px rgba(230, 0, 18, 0.28);
+  border-color: #0369a1;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #b8000e 0%, #991b1b 100%);
+  background: #0369a1;
+  border-color: #075985;
   transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background: linear-gradient(135deg, #09090b 0%, #27272a 100%);
+  background: #1e293b;
   color: #fff;
-  border-color: #3f3f46;
+  border-color: #334155;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #000000;
-  border-color: var(--primary);
+  background: #0f172a;
 }
 
 .btn-outline {
@@ -812,46 +815,45 @@ body {
 }
 
 .sa-tab {
-  padding: 0.68rem 1.2rem;
-  border-radius: 9px;
-  border: 1.5px solid #d4d4d8;
+  padding: 0.62rem 1.15rem;
+  border-radius: 6px;
+  border: 1.5px solid #cbd5e1;
   background: #ffffff;
-  color: #27272a;
-  font-weight: 800;
-  font-size: 0.88rem;
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.86rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  transition: all 0.18s ease;
+  transition: all 0.15s ease;
 }
 
 .sa-tab:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: #fef2f2;
+  background: #f0f9ff;
 }
 
 .sa-tab.active {
-  background: linear-gradient(135deg, #09090b 0%, #18181b 60%, #991b1b 100%);
+  background: var(--tpos-navy);
   color: #fff;
-  border-color: var(--primary);
+  border-color: var(--tpos-navy);
   border-bottom: 3px solid var(--primary);
-  box-shadow: 0 4px 12px rgba(230, 0, 18, 0.25);
+  box-shadow: 0 2px 8px rgba(11, 35, 65, 0.25);
 }
 
 .sa-count-badge {
   font-size: 0.72rem;
   padding: 0.12rem 0.52rem;
   border-radius: 99px;
-  background: #f4f4f5;
-  color: #18181b;
+  background: #e2e8f0;
+  color: #334155;
 }
 
 .sa-tab.active .sa-count-badge {
   background: var(--primary);
   color: #fff;
-  box-shadow: 0 0 8px rgba(230, 0, 18, 0.6);
 }
 
 /* Monitoring Filter Bar */
@@ -868,25 +870,25 @@ body {
   min-width: 220px;
 }
 
-/* Order Monitoring Group Card (Responsive for HP/Tab/PC) — GR Carbon & Red */
+/* Order Monitoring Group Card (Responsive for HP/Tab/PC) — TPOS Style */
 .order-group-card {
-  border: 1.5px solid #d4d4d8;
-  border-left: 5px solid var(--primary);
-  border-radius: 11px;
+  border: 1px solid #dce5ee;
+  border-left: 4px solid var(--primary);
+  border-radius: 8px;
   background: #fff;
   margin-bottom: 1.1rem;
   overflow: hidden;
   transition: box-shadow 0.18s, transform 0.18s;
-  box-shadow: 0 3px 10px rgba(9, 9, 11, 0.06);
+  box-shadow: 0 1px 4px rgba(11, 35, 65, 0.06);
 }
 
 .order-group-card:hover {
-  box-shadow: 0 8px 22px rgba(9, 9, 11, 0.13);
+  box-shadow: 0 4px 16px rgba(11, 35, 65, 0.12);
 }
 
 .order-group-header {
-  background: linear-gradient(90deg, #18181b 0%, #27272a 70%, #3f1d1d 100%);
-  color: #f4f4f5;
+  background: linear-gradient(90deg, #0b2341 0%, #153966 100%);
+  color: #ffffff;
   padding: 0.85rem 1.1rem;
   border-bottom: 2px solid var(--primary);
   display: flex;
@@ -897,7 +899,7 @@ body {
 }
 
 .nopol-badge {
-  background: linear-gradient(135deg, #e60012 0%, #b91c1c 100%);
+  background: #0284c7;
   color: #fff;
   font-weight: 900;
   font-size: 0.95rem;
@@ -905,7 +907,7 @@ body {
   border-radius: 6px;
   letter-spacing: 0.04em;
   border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 2px 8px rgba(230, 0, 18, 0.4);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
 }
 
 .status-badge {
