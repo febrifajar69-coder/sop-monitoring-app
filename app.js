@@ -1693,9 +1693,15 @@ function updateSaTabBadges() {
     const badge = document.getElementById(`badgeCount${sa}`);
     if (badge) {
       if (completeGroups.length > 0) {
-        badge.innerHTML = `${groups.length} Order &bull; <span style="color:#86efac;font-weight:800;">✓ ${completeGroups.length} Lengkap (${formatRupiah(completeTotalRupiah)})</span>`;
+        badge.innerHTML = `
+          <div class="sa-order-count">${groups.length} Order</div>
+          <div class="sa-complete-tag">✓ ${completeGroups.length} Lengkap (${formatRupiah(completeTotalRupiah)})</div>
+        `;
       } else {
-        badge.textContent = `${groups.length} Order (${items.length} Part)`;
+        badge.innerHTML = `
+          <div class="sa-order-count">${groups.length} Order</div>
+          <div class="sa-empty-tag">${items.length} Part</div>
+        `;
       }
     }
   });
