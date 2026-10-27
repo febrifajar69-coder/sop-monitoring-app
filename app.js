@@ -4180,12 +4180,17 @@ function renderKabengWeeklyReport() {
     }
 
     // Kolom Total Bulan per SA
+    const saUnitsTotal = saTotalUnits[sa] || 0;
+    const saOmzTotal = saTotalOmzet[sa] || 0;
+    const saTotalClickable = saUnitsTotal > 0 ? 'kabeng-clickable-cell' : '';
+    const saTotalClickAttr = saUnitsTotal > 0 ? `onclick="openKabengCellDetail('${sa}', 'ALL')" title="Klik untuk lihat ${saUnitsTotal} No. Polisi lengkap ${sa} bulan ini"` : '';
+
     tbodyHtml += `
-      <td class="kabeng-unit-cell" style="background:#f0fdf4;font-weight:900;color:#16a34a;">
-        ${saTotalUnits[sa] > 0 ? saTotalUnits[sa] : '0'}
+      <td class="kabeng-unit-cell ${saTotalClickable}" style="background:#f0fdf4;font-weight:900;color:#16a34a;" ${saTotalClickAttr}>
+        ${saUnitsTotal > 0 ? saUnitsTotal : '0'}
       </td>
-      <td class="kabeng-omzet-cell" style="background:#f0fdf4;font-weight:900;color:#16a34a;">
-        ${saTotalOmzet[sa] > 0 ? formatRupiahPlain(saTotalOmzet[sa]) : '0'}
+      <td class="kabeng-omzet-cell ${saTotalClickable}" style="background:#f0fdf4;font-weight:900;color:#16a34a;" ${saTotalClickAttr}>
+        ${saOmzTotal > 0 ? formatRupiahPlain(saOmzTotal) : '0'}
       </td>
     `;
     tbodyHtml += `</tr>`;
@@ -4203,16 +4208,22 @@ function renderKabengWeeklyReport() {
   for (let w = 1; w <= 5; w++) {
     const u = weekTotalUnits[w];
     const omz = weekTotalOmzet[w];
+    const weekTotalClickable = u > 0 ? 'kabeng-clickable-cell' : '';
+    const weekTotalClickAttr = u > 0 ? `onclick="openKabengCellDetail('TOTAL', ${w})" title="Klik untuk lihat seluruh ${u} No. Polisi lengkap di W${w}"` : '';
+
     tfootHtml += `
-      <td class="kabeng-unit-cell" style="font-weight:900;">${u}</td>
-      <td class="kabeng-omzet-cell" style="font-weight:900;">${omz > 0 ? formatRupiahPlain(omz) : '0'}</td>
+      <td class="kabeng-unit-cell ${weekTotalClickable}" style="font-weight:900;" ${weekTotalClickAttr}>${u}</td>
+      <td class="kabeng-omzet-cell ${weekTotalClickable}" style="font-weight:900;" ${weekTotalClickAttr}>${omz > 0 ? formatRupiahPlain(omz) : '0'}</td>
     `;
   }
 
-  // Total Keseluruhan Bulan Ini
+  // Total Keseluruhan Bulan Ini (Grand Total)
+  const grandTotalClickable = grandTotalUnits > 0 ? 'kabeng-clickable-cell' : '';
+  const grandTotalClickAttr = grandTotalUnits > 0 ? `onclick="openKabengCellDetail('TOTAL', 'ALL')" title="Klik untuk lihat seluruh ${grandTotalUnits} No. Polisi lengkap bulan ini"` : '';
+
   tfootHtml += `
-      <td class="kabeng-unit-cell" style="background:#e0f2fe;font-weight:900;color:#0369a1;">${grandTotalUnits}</td>
-      <td class="kabeng-omzet-cell" style="background:#e0f2fe;font-weight:900;color:#0369a1;">${formatRupiahPlain(grandTotalOmzet)}</td>
+      <td class="kabeng-unit-cell ${grandTotalClickable}" style="background:#e0f2fe;font-weight:900;color:#0369a1;" ${grandTotalClickAttr}>${grandTotalUnits}</td>
+      <td class="kabeng-omzet-cell ${grandTotalClickable}" style="background:#e0f2fe;font-weight:900;color:#0369a1;" ${grandTotalClickAttr}>${formatRupiahPlain(grandTotalOmzet)}</td>
     </tr>
 
     <!-- Baris Cutoff Tanggal di bawah tabel seperti di Excel referensi -->
@@ -4287,32 +4298,86 @@ function openKabengCellDetail(saKey, weekIndex) {
 
   if (!modal || !STATE.kabengReportCache || !STATE.kabengReportCache.cellOrders) return;
 
-  const orders = (STATE.kabengReportCache.cellOrders[saKey] && STATE.kabengReportCache.cellOrders[saKey][weekIndex]) || [];
-  const weekInfo = STATE.kabengReportCache.weeks.find((w) => w.index === weekIndex);
-  const weekLabel = weekInfo ? `${weekInfo.key} (${weekInfo.dateRangeLabel})` : `Pekan ${weekIndex}`;
+  const { year, month, weeks, allSas, cellOrders } = STATE.kabengReportCache;
+  const monthName = (typeof FULL_MONTHS_ID !== 'undefined' && FULL_MONTHS_ID[month]) ? FULL_MONTHS_ID[month] : SHORT_MONTHS_ID[month];
 
-  if (titleEl) {
-    titleEl.textContent = `📋 Rincian Order Lengkap — SA: ${saKey} (${weekLabel})`;
-  }
-  if (subtitleEl) {
-    subtitleEl.textContent = `Daftar No. Polisi yang seluruh sparepart-nya telah tiba di bengkel pada ${weekLabel}.`;
+  let orders = [];
+  let titleLabel = '';
+  let subtitleLabel = '';
+
+  const isAllWeeks = weekIndex === 'ALL' || weekIndex === 0;
+  const isAllSas = saKey === 'TOTAL' || saKey === 'ALL';
+
+  if (isAllSas && isAllWeeks) {
+    // Grand Total: Seluruh SA & Seluruh Pekan
+    allSas.forEach((sa) => {
+      for (let w = 1; w <= 5; w++) {
+        const list = (cellOrders[sa] && cellOrders[sa][w]) || [];
+        orders.push(...list);
+      }
+    });
+    titleLabel = `📋 Rincian Seluruh Order Lengkap — Bulan ${monthName} ${year}`;
+    subtitleLabel = `Daftar seluruh No. Polisi dari semua SA yang telah lengkap sparepart-nya pada bulan ${monthName} ${year}.`;
+  } else if (isAllSas) {
+    // Baris Total per Pekan: Seluruh SA pada Pekan W
+    const weekInfo = weeks.find((w) => w.index === Number(weekIndex));
+    const weekLabel = weekInfo ? `${weekInfo.key} (${weekInfo.dateRangeLabel})` : `Pekan ${weekIndex}`;
+    allSas.forEach((sa) => {
+      const list = (cellOrders[sa] && cellOrders[sa][Number(weekIndex)]) || [];
+      orders.push(...list);
+    });
+    titleLabel = `📋 Rincian Total Order Lengkap — Seluruh SA (${weekLabel})`;
+    subtitleLabel = `Daftar No. Polisi dari semua SA yang sparepart-nya lengkap tiba pada ${weekLabel}.`;
+  } else if (isAllWeeks) {
+    // Kolom Total Bulan per SA
+    for (let w = 1; w <= 5; w++) {
+      const list = (cellOrders[saKey] && cellOrders[saKey][w]) || [];
+      orders.push(...list);
+    }
+    titleLabel = `📋 Rincian Total Order Lengkap — SA: ${saKey} (Bulan ${monthName} ${year})`;
+    subtitleLabel = `Daftar seluruh No. Polisi lengkap untuk SA ${saKey} selama bulan ${monthName} ${year}.`;
+  } else {
+    // Sel SA spesifik pada Pekan spesifik
+    const weekInfo = weeks.find((w) => w.index === Number(weekIndex));
+    const weekLabel = weekInfo ? `${weekInfo.key} (${weekInfo.dateRangeLabel})` : `Pekan ${weekIndex}`;
+    orders = (cellOrders[saKey] && cellOrders[saKey][Number(weekIndex)]) || [];
+    titleLabel = `📋 Rincian Order Lengkap — SA: ${saKey} (${weekLabel})`;
+    subtitleLabel = `Daftar No. Polisi yang seluruh sparepart-nya telah tiba di bengkel pada ${weekLabel}.`;
   }
 
-  const grandTotal = orders.reduce((sum, g) => sum + (Number(g.grandTotal) || 0), 0);
-  if (countEl) countEl.textContent = `${orders.length} Unit (No. Polisi Lengkap)`;
+  // Hilangkan duplikasi jika ada referensi order yang sama
+  const uniqueOrders = [];
+  const seenKeys = new Set();
+  orders.forEach((g) => {
+    const k = g.groupKey || `${g.sheetName}::${g.nopol}`;
+    if (!seenKeys.has(k)) {
+      seenKeys.add(k);
+      uniqueOrders.push(g);
+    }
+  });
+
+  if (titleEl) titleEl.textContent = titleLabel;
+  if (subtitleEl) subtitleEl.textContent = subtitleLabel;
+
+  const grandTotal = uniqueOrders.reduce((sum, g) => sum + (Number(g.grandTotal) || 0), 0);
+  if (countEl) countEl.textContent = `${uniqueOrders.length} Unit (No. Polisi Lengkap)`;
   if (totalEl) totalEl.textContent = `Total: ${formatRupiah(grandTotal)}`;
 
+  // Hitung usia part hari ini
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
   if (tbodyEl) {
-    if (orders.length === 0) {
+    if (uniqueOrders.length === 0) {
       tbodyEl.innerHTML = `
         <tr>
           <td colspan="8" style="text-align:center;padding:2rem;color:#94a3b8;">
-            Tidak ada data order lengkap untuk SA ${saKey} pada ${weekLabel}.
+            Tidak ada data order lengkap untuk kategori ini.
           </td>
         </tr>
       `;
     } else {
-      tbodyEl.innerHTML = orders.map((grp, idx) => {
+      tbodyEl.innerHTML = uniqueOrders.map((grp, idx) => {
         const partsSummary = (grp.items || []).map((it) => {
           return `<div style="font-size:0.75rem;margin-bottom:2px;">
             <code style="background:#e2e8f0;padding:1px 4px;border-radius:3px;font-weight:700;">${escapeHtml(it.partNo || '-')}</code>
@@ -4322,6 +4387,25 @@ function openKabengCellDetail(saKey, weekIndex) {
 
         const latestAta = grp.latestAtaDisplay || formatShortDayMonth(grp.ata) || '-';
 
+        // Hitung Usia Part setelah lengkap tiba
+        let ataAge = grp.ataAgeDays;
+        if (ataAge === undefined || ataAge === null || ataAge < 0) {
+          if (grp.fullAtaTimestamp && grp.fullAtaTimestamp !== Infinity) {
+            ataAge = Math.max(0, Math.floor((todayMidnight - grp.fullAtaTimestamp) / 86400000));
+          } else {
+            ataAge = 0;
+          }
+        }
+
+        let ageBadge = '';
+        if (ataAge === 0) {
+          ageBadge = `<span style="font-size:0.75rem;font-weight:800;color:#15803d;background:#dcfce7;border:1px solid #86efac;padding:2px 8px;border-radius:5px;white-space:nowrap;">0 Hari (Hari Ini)</span>`;
+        } else if (ataAge < 7) {
+          ageBadge = `<span style="font-size:0.75rem;font-weight:800;color:#0284c7;background:#e0f2fe;border:1px solid #7dd3fc;padding:2px 8px;border-radius:5px;white-space:nowrap;">${ataAge} Hari</span>`;
+        } else {
+          ageBadge = `<span style="font-size:0.75rem;font-weight:800;color:#dc2626;background:#fee2e2;border:1px solid #fca5a5;padding:2px 8px;border-radius:5px;white-space:nowrap;">⚠️ ${ataAge} Hari</span>`;
+        }
+
         return `
           <tr>
             <td style="text-align:center;font-weight:700;color:#64748b;">${idx + 1}</td>
@@ -4329,15 +4413,14 @@ function openKabengCellDetail(saKey, weekIndex) {
               <div style="font-weight:900;font-size:0.92rem;color:#0b2341;">${escapeHtml(grp.nopol || '-')}</div>
               <div style="font-size:0.72rem;color:#64748b;">Sheet: ${escapeHtml(grp.sheetName || '')}${grp.saPic ? ' / ' + escapeHtml(grp.saPic) : ''}</div>
             </td>
-            <td>
-              <div style="font-weight:700;color:#0f172a;">${escapeHtml(grp.items[0]?.custName || '-')}</div>
-              <div style="font-size:0.74rem;color:#64748b;">${escapeHtml(grp.items[0]?.phone || '-')}</div>
-            </td>
             <td style="text-align:center;font-size:0.78rem;font-weight:600;color:#475569;">
               ${escapeHtml(grp.orderDate || '-')}
             </td>
-            <td style="text-align:center;font-size:0.8rem;font-weight:800;color:#16a34a;">
+            <td style="text-align:center;font-size:0.8rem;font-weight:800;color:#16a34a;white-space:nowrap;">
               ✓ ${escapeHtml(latestAta)}
+            </td>
+            <td style="text-align:center;">
+              ${ageBadge}
             </td>
             <td>
               ${partsSummary}
