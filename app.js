@@ -81,8 +81,8 @@ function initApp() {
   // 2. Set tanggal default (Hari ini & +10 hari untuk ETA sesuai rumus =TODAY()+10 di J12)
   setDefaultFormDates();
 
-  // 3. Muat contoh awal 4 item part sesuai data di SOP LEMBAR1 (DK-1640-LN) agar langsung terlihat bentuknya
-  loadSampleOrder(true);
+  // 3. Set tampilan Form Order default bersih & siap pakai untuk input order baru
+  resetOrderForm(true);
 
   // 4. Pasang event listener untuk pencarian otomatis NOPOL ke Sheet RAW
   setupNopolLookupListeners();
@@ -711,7 +711,7 @@ function loadSampleOrder(silent) {
   }
 }
 
-function resetOrderForm() {
+function resetOrderForm(silent) {
   document.getElementById('inputNopol').value = '';
   document.getElementById('selectSa').value = 'AJS';
   document.getElementById('inputPicOther').value = '';
@@ -736,7 +736,9 @@ function resetOrderForm() {
   handleSaChange();
   renderPartItemsTable();
   renderPrintSheets();
-  showToast('Form Order berhasil dikosongkan untuk input baru.');
+  if (!silent) {
+    showToast('Form Order berhasil dikosongkan untuk input baru.');
+  }
 }
 
 /**
