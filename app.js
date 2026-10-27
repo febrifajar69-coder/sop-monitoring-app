@@ -1650,12 +1650,20 @@ function groupMonitoringItemsByOrder(items) {
       if (d) {
         arrivedCount++;
         itemAtaDates.push(d);
+        it.status = 'ARRIVAL';
       }
     });
 
     grp.arrivedItemCount = arrivedCount;
     grp.allItemsArrived = grp.items.length > 0 && arrivedCount === grp.items.length;
     grp.someItemsArrived = arrivedCount > 0 && arrivedCount < grp.items.length;
+
+    // Jika ada item part yang sudah memiliki ATA, status order otomatis menjadi 'ARRIVAL'
+    if (arrivedCount > 0) {
+      if (!grp.status || grp.status === 'NOT FIX' || grp.status === 'IN PROCESS' || grp.status === 'BO') {
+        grp.status = 'ARRIVAL';
+      }
+    }
 
     if (itemAtaDates.length > 0) {
       // Tanggal saat seluruh item part selesai datang (tanggal ATA terakhir di antara item part grup tersebut)
@@ -2129,7 +2137,7 @@ function renderMonitoringList() {
                               id="${safeDomId}_ata_${i}"
                               data-rownum="${it.rowNumber}"
                               value="${escapeHtml(isoAta)}"
-                              onchange="onShortDateInputChanged(this, '${safeDomId}_ata_lbl_${i}', '#15803d')"
+                              onchange="onShortDateInputChanged(this, '${safeDomId}_ata_lbl_${i}', '#15803d', '${safeDomId}', true)"
                               style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;"
                             />
                           </div>
@@ -2260,29 +2268,45 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
   const dpEl = document.getElementById(`${domPrefix}_dp`);
   const dpVal = dpEl ? (dpEl.value || 'NOT FIX').trim().toUpperCase() : '';
   const statusEl = document.getElementById(`${domPrefix}_status`);
-  const statusVal = statusEl ? (statusEl.value || 'NOT FIX').trim().toUpperCase() : '';
+  let statusVal = statusEl ? (statusEl.value || 'NOT FIX').trim().toUpperCase() : '';
   const picEl = document.getElementById(`${domPrefix}_pic`);
   const saPic = picEl ? (picEl.value || '').trim().toUpperCase() : '';
 
   // Kumpulkan NEW ETA & ATA dari setiap baris item part dalam grup ini
   const itemUpdates = [];
+  let hasAnyAta = false;
   rowNumbers.forEach((rNum, idx) => {
     const newEtaInput = document.getElementById(`${domPrefix}_neweta_${idx}`);
     const ataInput = document.getElementById(`${domPrefix}_ata_${idx}`);
     const newEtaVal = newEtaInput ? (newEtaInput.value || '').trim() : '';
     const ataVal = ataInput ? (ataInput.value || '').trim() : '';
+    const formattedAta = ataVal ? formatDateSlash(ataVal) : '';
+    if (formattedAta) {
+      hasAnyAta = true;
+    }
+
+    // Tiap part yang sudah ada ATA otomatis statusnya jadi 'ARRIVAL'
+    const itemStatus = formattedAta ? 'ARRIVAL' : statusVal;
 
     itemUpdates.push({
       rowNumber: rNum,
       newEta: newEtaVal ? formatDateSlash(newEtaVal) : '',
-      ata: ataVal ? formatDateSlash(ataVal) : ''
+      ata: formattedAta,
+      status: itemStatus
     });
 
     STATE.localFollowUpEdits[`ITEM-${sheetName}-R${rNum}`] = {
       newEta: newEtaVal ? formatDateSlash(newEtaVal) : '',
-      ata: ataVal ? formatDateSlash(ataVal) : ''
+      ata: formattedAta,
+      status: itemStatus
     };
   });
+
+  // Jika ada part yang sudah ada ATA-nya, pastikan status grup/kartu adalah 'ARRIVAL'
+  if (hasAnyAta && statusVal !== 'ARRIVAL') {
+    statusVal = 'ARRIVAL';
+    if (statusEl) statusEl.value = 'ARRIVAL';
+  }
 
   const btn = document.getElementById(`${domPrefix}_btn`);
   const origText = btn ? btn.innerHTML : '';
@@ -2321,6 +2345,9 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
         it.newEta = matchedUpd.newEta;
         it.etaBo = matchedUpd.newEta;
         it.ata = matchedUpd.ata;
+        if (matchedUpd.status) {
+          it.status = matchedUpd.status;
+        }
       }
     }
   });
@@ -2689,13 +2716,30 @@ function openShortDatePicker(inputId) {
   input.focus();
 }
 
-function onShortDateInputChanged(inputEl, labelId, activeColor) {
+function onShortDateInputChanged(inputEl, labelId, activeColor, domPrefix, isAta) {
   const lbl = document.getElementById(labelId);
   if (!lbl || !inputEl) return;
   const val = (inputEl.value || '').trim();
   if (val) {
     lbl.textContent = formatShortDayMonth(val);
     lbl.style.color = activeColor || '#0f172a';
+
+    // Jika input ATA diisi, otomatis alihkan dropdown Status Order ke 'ARRIVAL'
+    if (isAta && domPrefix) {
+      const statusEl = document.getElementById(`${domPrefix}_status`);
+      if (statusEl && statusEl.value !== 'ARRIVAL') {
+        statusEl.value = 'ARRIVAL';
+        statusEl.style.transition = 'all 0.3s ease';
+        statusEl.style.borderColor = '#16a34a';
+        statusEl.style.boxShadow = '0 0 0 3px rgba(22, 163, 74, 0.25)';
+        setTimeout(() => {
+          if (statusEl) {
+            statusEl.style.borderColor = '';
+            statusEl.style.boxShadow = '';
+          }
+        }, 1500);
+      }
+    }
   } else {
     lbl.textContent = '- Pilih -';
     lbl.style.color = '#94a3b8';

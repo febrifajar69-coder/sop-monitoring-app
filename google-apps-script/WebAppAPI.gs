@@ -828,6 +828,21 @@ function getMonitoringData(saFilter) {
       const meta1 = parseFuNoteMeta(nRow[0]);
       const meta2 = parseFuNoteMeta(nRow[1]);
 
+      const rawAta = String(d[9] || '').trim();
+      let rowStatus = String(d[16] || '').trim().toUpperCase();
+
+      // Aturan Otomatis: jika part sudah ada ATA, status ordernya otomatis jadi 'ARRIVAL'
+      if (rawAta) {
+        if (rowStatus !== 'ARRIVAL') {
+          rowStatus = 'ARRIVAL';
+          try {
+            sheet.getRange(rowNum, 17).setValue('ARRIVAL');
+          } catch (eArr) {}
+        }
+      } else if (!rowStatus) {
+        rowStatus = 'IN PROCESS';
+      }
+
       items.push({
         id: sheetName + '-R' + rowNum,
         sheetName: sheetName,
@@ -851,7 +866,7 @@ function getMonitoringData(saFilter) {
         followUp3: d[15] || '',
         fu1Date: meta1.dateStr || '',
         fu2Date: meta2.dateStr || '',
-        status: d[16] || 'IN PROCESS',
+        status: rowStatus,
         saPic: saPic
       });
     }
@@ -1056,7 +1071,8 @@ function updateFollowUpBySA(payload) {
       if (iu && iu.rowNumber) {
         itemEtaAtaMap[parseInt(iu.rowNumber, 10)] = {
           newEta: iu.newEta !== undefined ? String(iu.newEta || '').trim() : undefined,
-          ata: iu.ata !== undefined ? String(iu.ata || '').trim() : undefined
+          ata: iu.ata !== undefined ? String(iu.ata || '').trim() : undefined,
+          status: iu.status !== undefined ? String(iu.status || '').trim().toUpperCase() : undefined
         };
       }
     });
@@ -1129,7 +1145,24 @@ function updateFollowUpBySA(payload) {
       }
 
       // 5. Update Status Order (Kolom Q / 17: NOT FIX, IN PROCESS, ARRIVAL, BO)
-      if (statusVal) {
+      // Aturan Otomatis: Tiap part yang sudah ada ATA-nya, otomatis di spreadsheet status ordernya jadi 'ARRIVAL'!
+      let partHasAta = false;
+      if (itemUpd && itemUpd.ata !== undefined) {
+        if (itemUpd.ata && String(itemUpd.ata).trim() !== '') {
+          partHasAta = true;
+        }
+      } else {
+        const existingAta = String(sheet.getRange(rInt, 10).getDisplayValue() || '').trim();
+        if (existingAta) {
+          partHasAta = true;
+        }
+      }
+
+      if (partHasAta) {
+        sheet.getRange(rInt, 17).setValue('ARRIVAL');
+      } else if (itemUpd && itemUpd.status) {
+        sheet.getRange(rInt, 17).setValue(itemUpd.status);
+      } else if (statusVal) {
         sheet.getRange(rInt, 17).setValue(statusVal);
       }
 
