@@ -1341,113 +1341,291 @@ body {
  * ============================================================================ */
 .kabeng-matrix-table {
   width: 100%;
-  border-collapse: collapse;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 0.88rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: inherit;
+  font-size: 0.86rem;
   background: #ffffff;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .kabeng-matrix-table th,
 .kabeng-matrix-table td {
-  border: 1.5px solid #000000;
-  padding: 7px 10px;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 8px 10px;
   vertical-align: middle;
 }
 
-/* Header Hijau PART SOP persis seperti Excel referensi */
-.kabeng-header-green {
-  background-color: #00ff00 !important;
-  color: #000000 !important;
-  font-weight: 900 !important;
-  text-align: center;
-  font-size: 0.95rem;
-  letter-spacing: 0.04em;
-  padding: 10px !important;
+.kabeng-matrix-table tr > *:last-child {
+  border-right: none;
 }
 
-/* Header Pekan W1, W2, W3, W4, W5 */
+.kabeng-matrix-table tr:last-child > * {
+  border-bottom: none;
+}
+
+/* Header Hijau / Brand PART SOP */
+.kabeng-header-brand {
+  background: linear-gradient(135deg, #0b2341 0%, #1e3a8a 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  text-align: center;
+  font-size: 0.88rem;
+  padding: 10px !important;
+  letter-spacing: 0.03em;
+}
+
+.kabeng-brand-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(34, 197, 94, 0.18);
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  color: #4ade80;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 800;
+  font-size: 0.84rem;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.kabeng-brand-dot {
+  width: 8px;
+  height: 8px;
+  background: #22c55e;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #22c55e;
+  display: inline-block;
+}
+
+/* Header Pekan W1 - W5 */
 .kabeng-header-week {
-  background-color: #ffffff;
-  color: #000000;
+  background: #0f294d;
+  color: #ffffff;
+  font-weight: 700;
+  text-align: center;
+  padding: 8px 6px;
+}
+
+.kabeng-week-title {
+  display: block;
+  font-weight: 800;
+  font-size: 0.92rem;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+}
+
+.kabeng-week-range {
+  display: block;
+  font-size: 0.72rem;
+  color: #93c5fd;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* Header TOTAL BULAN */
+.kabeng-header-month {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
   font-weight: 800;
   text-align: center;
-  font-size: 0.92rem;
+  padding: 8px 6px;
 }
 
 /* Sub-header UNIT dan OMZET */
 .kabeng-sub-header {
-  background-color: #ffffff;
-  color: #000000;
-  font-weight: 800;
+  background: #1b365d;
+  color: #e2e8f0;
+  font-weight: 700;
   text-align: center;
-  font-size: 0.8rem;
-  letter-spacing: 0.02em;
+  font-size: 0.74rem;
+  letter-spacing: 0.05em;
+  padding: 6px 4px;
+  text-transform: uppercase;
+}
+
+.kabeng-sub-header-month {
+  background: #075985 !important;
+  color: #e0f2fe !important;
+}
+
+/* Baris data hover */
+.kabeng-matrix-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.kabeng-matrix-table tbody tr:hover {
+  background-color: #f8fafc;
 }
 
 /* Kolom SA */
 .kabeng-sa-cell {
-  background-color: #ffffff;
-  font-weight: 800;
-  color: #000000;
+  background-color: #f8fafc;
   text-align: center;
-  min-width: 85px;
-  font-size: 0.9rem;
+  min-width: 90px;
+  border-left: 3px solid #0284c7;
 }
 
-/* Sel Angka Unit */
+.kabeng-sa-tag {
+  display: inline-block;
+  background: #e2e8f0;
+  color: #0f294d;
+  font-weight: 800;
+  font-size: 0.82rem;
+  padding: 3px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.03em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Sel Angka Unit & Omzet */
 .kabeng-unit-cell {
   text-align: center;
   font-weight: 700;
-  color: #000000;
-  min-width: 50px;
+  color: #1e293b;
+  min-width: 52px;
+  font-size: 0.88rem;
 }
 
-/* Sel Angka Omzet */
 .kabeng-omzet-cell {
   text-align: right;
   font-weight: 600;
-  color: #000000;
+  color: #1e293b;
   min-width: 110px;
-  font-family: Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  padding-right: 12px !important;
 }
 
-/* Alert Sel Kuning (#ffff00) saat 0 Unit / 0 Omzet */
-.kabeng-cell-zero {
-  background-color: #ffff00 !important;
-  color: #000000 !important;
+/* Badge angka Unit positif */
+.kabeng-val-unit {
+  display: inline-block;
+  background: #f1f5f9;
+  color: #0f294d;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+/* Modern Warning: Alert 0 Unit / 0 Omzet saat pekan aktif */
+.kabeng-cell-alert {
+  background-color: #fffbeb !important;
+}
+
+.kabeng-zero-tag {
+  display: inline-block;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.8rem;
+  box-shadow: 0 1px 2px rgba(180, 83, 9, 0.08);
+}
+
+/* Muted dash untuk data kosong */
+.kabeng-muted-dash {
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+/* Kolom Total Bulan per SA */
+.kabeng-month-unit-cell {
+  background-color: #f0fdf4 !important;
+  color: #15803d !important;
   font-weight: 800 !important;
-  text-align: center !important;
-}
-
-/* Baris TOTAL di bagian bawah */
-.kabeng-total-row th,
-.kabeng-total-row td {
-  background-color: #ffffff;
-  font-weight: 900;
-  color: #000000;
-  border-top: 2px solid #000000 !important;
-  border-bottom: 2px solid #000000 !important;
-}
-
-/* Baris Cutoff Tanggal di bawah tabel */
-.kabeng-date-cutoff-row td {
-  background-color: #ffffff;
-  font-weight: 700;
   text-align: center;
-  font-size: 0.82rem;
-  color: #000000;
-  border: 1.5px solid #000000;
 }
 
-/* Cell Clickable */
+.kabeng-month-omzet-cell {
+  background-color: #f0fdf4 !important;
+  color: #15803d !important;
+  font-weight: 800 !important;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  padding-right: 12px !important;
+}
+
+/* Baris TOTAL */
+.kabeng-total-row {
+  background-color: #f1f5f9;
+}
+
+.kabeng-total-row td,
+.kabeng-total-row th {
+  background-color: #f1f5f9;
+  font-weight: 800;
+  color: #0f294d;
+  border-top: 2px solid #cbd5e1 !important;
+}
+
+.kabeng-total-tag {
+  display: inline-block;
+  background: #0f294d;
+  color: #ffffff;
+  padding: 3px 12px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+
+/* Grand Total highlight */
+.kabeng-grand-total {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  font-weight: 800 !important;
+}
+
+/* Baris Cutoff Tanggal */
+.kabeng-date-cutoff-row td {
+  background-color: #f8fafc;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #475569;
+  padding: 7px 6px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.kabeng-cutoff-pill {
+  display: inline-block;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.74rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* Hover cell interaktif */
 .kabeng-clickable-cell {
   cursor: pointer;
+  position: relative;
   transition: all 0.15s ease;
 }
+
 .kabeng-clickable-cell:hover {
-  background-color: #e0f2fe !important;
+  background-color: #dbeafe !important;
   color: #0284c7 !important;
-  text-decoration: underline;
+  transform: translateY(-1px);
+  box-shadow: inset 0 0 0 1px #60a5fa, 0 2px 4px rgba(2, 132, 199, 0.12);
+}
+
+.kabeng-clickable-cell:hover .kabeng-val-unit {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.kabeng-clickable-cell:hover .kabeng-zero-tag {
+  background: #f59e0b;
+  color: #ffffff;
+  border-color: #d97706;
 }
 
 .sop-footer-label {

@@ -4104,77 +4104,100 @@ function renderKabengWeeklyReport() {
     }
   });
 
-  // 7. Render Header Tabel (2 Baris Header persis seperti gambar referensi)
+  // 7. Render Header Tabel (Tampilan Modern Executive Dashboard)
   let theadHtml = `
     <thead>
       <tr>
-        <th rowspan="2" class="kabeng-header-green">PART SOP</th>
-        <th colspan="2" class="kabeng-header-week">W1</th>
-        <th colspan="2" class="kabeng-header-week">W2</th>
-        <th colspan="2" class="kabeng-header-week">W3</th>
-        <th colspan="2" class="kabeng-header-week">W4</th>
-        <th colspan="2" class="kabeng-header-week">W5</th>
-        <th colspan="2" class="kabeng-header-week" style="background:#0284c7;color:#ffffff;">TOTAL BULAN</th>
+        <th rowspan="2" class="kabeng-header-brand">
+          <div class="kabeng-brand-chip">
+            <span class="kabeng-brand-dot"></span>
+            PART SOP
+          </div>
+        </th>
+        <th colspan="2" class="kabeng-header-week">
+          <span class="kabeng-week-title">W1</span>
+          <span class="kabeng-week-range">${weeks[0] ? weeks[0].dateRangeLabel : '-'}</span>
+        </th>
+        <th colspan="2" class="kabeng-header-week">
+          <span class="kabeng-week-title">W2</span>
+          <span class="kabeng-week-range">${weeks[1] ? weeks[1].dateRangeLabel : '-'}</span>
+        </th>
+        <th colspan="2" class="kabeng-header-week">
+          <span class="kabeng-week-title">W3</span>
+          <span class="kabeng-week-range">${weeks[2] ? weeks[2].dateRangeLabel : '-'}</span>
+        </th>
+        <th colspan="2" class="kabeng-header-week">
+          <span class="kabeng-week-title">W4</span>
+          <span class="kabeng-week-range">${weeks[3] ? weeks[3].dateRangeLabel : '-'}</span>
+        </th>
+        <th colspan="2" class="kabeng-header-week">
+          <span class="kabeng-week-title">W5</span>
+          <span class="kabeng-week-range">${weeks[4] ? weeks[4].dateRangeLabel : '-'}</span>
+        </th>
+        <th colspan="2" class="kabeng-header-month">
+          <span class="kabeng-week-title">TOTAL BULAN</span>
+          <span class="kabeng-week-range" style="color:#e0f2fe;">1 - ${daysInMonth} ${monthName}</span>
+        </th>
       </tr>
       <tr>
-        <th class="kabeng-sub-header">UNIT</th>
-        <th class="kabeng-sub-header">OMZET</th>
-        <th class="kabeng-sub-header">UNIT</th>
-        <th class="kabeng-sub-header">OMZET</th>
-        <th class="kabeng-sub-header">UNIT</th>
-        <th class="kabeng-sub-header">OMZET</th>
-        <th class="kabeng-sub-header">UNIT</th>
-        <th class="kabeng-sub-header">OMZET</th>
-        <th class="kabeng-sub-header">UNIT</th>
-        <th class="kabeng-sub-header">OMZET</th>
-        <th class="kabeng-sub-header" style="background:#0369a1;color:#ffffff;">UNIT</th>
-        <th class="kabeng-sub-header" style="background:#0369a1;color:#ffffff;">OMZET</th>
+        <th class="kabeng-sub-header">Unit</th>
+        <th class="kabeng-sub-header">Omzet</th>
+        <th class="kabeng-sub-header">Unit</th>
+        <th class="kabeng-sub-header">Omzet</th>
+        <th class="kabeng-sub-header">Unit</th>
+        <th class="kabeng-sub-header">Omzet</th>
+        <th class="kabeng-sub-header">Unit</th>
+        <th class="kabeng-sub-header">Omzet</th>
+        <th class="kabeng-sub-header">Unit</th>
+        <th class="kabeng-sub-header">Omzet</th>
+        <th class="kabeng-sub-header kabeng-sub-header-month">Unit</th>
+        <th class="kabeng-sub-header kabeng-sub-header-month">Omzet</th>
       </tr>
     </thead>
   `;
 
-  // 8. Render Baris Data Tiap SA (TJS, WSH, AJS, AYU, FIK, WBN, TWC, OTHER)
+  // 8. Render Baris Data Tiap SA (AJS, AYU, FIK, WBN, OTHERS)
   let tbodyHtml = '<tbody>';
   allSas.forEach((sa) => {
     tbodyHtml += `<tr>`;
-    tbodyHtml += `<td class="kabeng-sa-cell">${escapeHtml(sa)}</td>`;
+    tbodyHtml += `<td class="kabeng-sa-cell"><span class="kabeng-sa-tag">${escapeHtml(sa)}</span></td>`;
 
     for (let w = 1; w <= 5; w++) {
       const list = (cellOrders[sa] && cellOrders[sa][w]) || [];
       const units = list.length;
       const omzet = list.reduce((sum, g) => sum + (Number(g.grandTotal) || 0), 0);
 
-      // Rule alert kuning (#ffff00): Pada minggu yang aktif (weekTotalUnits > 0), jika SA mendapat 0 unit
+      // Rule alert kuning pastel: Pada minggu yang aktif (weekTotalUnits > 0), jika SA mendapat 0 unit
       const isZeroAlert = weekTotalUnits[w] > 0 && units === 0;
       const isWeekHasActivity = weekTotalUnits[w] > 0;
 
-      let unitText = '';
-      let omzetText = '';
+      let unitHtml = '';
+      let omzetHtml = '';
 
       if (units > 0) {
-        unitText = String(units);
-        omzetText = formatRupiahPlain(omzet);
+        unitHtml = `<span class="kabeng-val-unit">${units}</span>`;
+        omzetHtml = formatRupiahPlain(omzet);
       } else if (isZeroAlert) {
-        unitText = '0';
-        omzetText = '0';
+        unitHtml = `<span class="kabeng-zero-tag">0</span>`;
+        omzetHtml = `<span class="kabeng-zero-tag">0</span>`;
       } else if (isWeekHasActivity) {
-        unitText = '0';
-        omzetText = '';
+        unitHtml = `<span class="kabeng-muted-dash">0</span>`;
+        omzetHtml = `<span class="kabeng-muted-dash">-</span>`;
       } else {
-        unitText = '';
-        omzetText = '';
+        unitHtml = `<span class="kabeng-muted-dash">-</span>`;
+        omzetHtml = `<span class="kabeng-muted-dash">-</span>`;
       }
 
-      const alertClass = isZeroAlert ? 'kabeng-cell-zero' : '';
+      const alertClass = isZeroAlert ? 'kabeng-cell-alert' : '';
       const clickableClass = units > 0 ? 'kabeng-clickable-cell' : '';
       const clickAttr = units > 0 ? `onclick="openKabengCellDetail('${sa}', ${w})" title="Klik untuk lihat ${units} No. Polisi lengkap"` : '';
 
       tbodyHtml += `
         <td class="kabeng-unit-cell ${alertClass} ${clickableClass}" ${clickAttr}>
-          ${unitText}
+          ${unitHtml}
         </td>
         <td class="kabeng-omzet-cell ${alertClass} ${clickableClass}" ${clickAttr}>
-          ${omzetText}
+          ${omzetHtml}
         </td>
       `;
     }
@@ -4186,10 +4209,10 @@ function renderKabengWeeklyReport() {
     const saTotalClickAttr = saUnitsTotal > 0 ? `onclick="openKabengCellDetail('${sa}', 'ALL')" title="Klik untuk lihat ${saUnitsTotal} No. Polisi lengkap ${sa} bulan ini"` : '';
 
     tbodyHtml += `
-      <td class="kabeng-unit-cell ${saTotalClickable}" style="background:#f0fdf4;font-weight:900;color:#16a34a;" ${saTotalClickAttr}>
-        ${saUnitsTotal > 0 ? saUnitsTotal : '0'}
+      <td class="kabeng-unit-cell kabeng-month-unit-cell ${saTotalClickable}" ${saTotalClickAttr}>
+        ${saUnitsTotal > 0 ? `<span class="kabeng-val-unit" style="background:#dcfce7;color:#15803d;">${saUnitsTotal}</span>` : '0'}
       </td>
-      <td class="kabeng-omzet-cell ${saTotalClickable}" style="background:#f0fdf4;font-weight:900;color:#16a34a;" ${saTotalClickAttr}>
+      <td class="kabeng-omzet-cell kabeng-month-omzet-cell ${saTotalClickable}" ${saTotalClickAttr}>
         ${saOmzTotal > 0 ? formatRupiahPlain(saOmzTotal) : '0'}
       </td>
     `;
@@ -4202,7 +4225,7 @@ function renderKabengWeeklyReport() {
     <tfoot>
       <!-- Baris TOTAL -->
       <tr class="kabeng-total-row">
-        <td class="kabeng-sa-cell" style="font-weight:900;">TOTAL</td>
+        <td class="kabeng-sa-cell" style="background:#f1f5f9;"><span class="kabeng-total-tag">TOTAL</span></td>
   `;
 
   for (let w = 1; w <= 5; w++) {
@@ -4212,8 +4235,12 @@ function renderKabengWeeklyReport() {
     const weekTotalClickAttr = u > 0 ? `onclick="openKabengCellDetail('TOTAL', ${w})" title="Klik untuk lihat seluruh ${u} No. Polisi lengkap di W${w}"` : '';
 
     tfootHtml += `
-      <td class="kabeng-unit-cell ${weekTotalClickable}" style="font-weight:900;" ${weekTotalClickAttr}>${u}</td>
-      <td class="kabeng-omzet-cell ${weekTotalClickable}" style="font-weight:900;" ${weekTotalClickAttr}>${omz > 0 ? formatRupiahPlain(omz) : '0'}</td>
+      <td class="kabeng-unit-cell ${weekTotalClickable}" style="font-weight:800;" ${weekTotalClickAttr}>
+        ${u > 0 ? `<span class="kabeng-val-unit">${u}</span>` : '<span class="kabeng-muted-dash">0</span>'}
+      </td>
+      <td class="kabeng-omzet-cell ${weekTotalClickable}" style="font-weight:700;" ${weekTotalClickAttr}>
+        ${omz > 0 ? formatRupiahPlain(omz) : '<span class="kabeng-muted-dash">0</span>'}
+      </td>
     `;
   }
 
@@ -4222,19 +4249,23 @@ function renderKabengWeeklyReport() {
   const grandTotalClickAttr = grandTotalUnits > 0 ? `onclick="openKabengCellDetail('TOTAL', 'ALL')" title="Klik untuk lihat seluruh ${grandTotalUnits} No. Polisi lengkap bulan ini"` : '';
 
   tfootHtml += `
-      <td class="kabeng-unit-cell ${grandTotalClickable}" style="background:#e0f2fe;font-weight:900;color:#0369a1;" ${grandTotalClickAttr}>${grandTotalUnits}</td>
-      <td class="kabeng-omzet-cell ${grandTotalClickable}" style="background:#e0f2fe;font-weight:900;color:#0369a1;" ${grandTotalClickAttr}>${formatRupiahPlain(grandTotalOmzet)}</td>
+      <td class="kabeng-unit-cell kabeng-grand-total ${grandTotalClickable}" ${grandTotalClickAttr}>
+        ${grandTotalUnits > 0 ? `<span class="kabeng-val-unit" style="background:#0284c7;color:#ffffff;">${grandTotalUnits}</span>` : '0'}
+      </td>
+      <td class="kabeng-omzet-cell kabeng-grand-total ${grandTotalClickable}" ${grandTotalClickAttr}>
+        ${formatRupiahPlain(grandTotalOmzet)}
+      </td>
     </tr>
 
-    <!-- Baris Cutoff Tanggal di bawah tabel seperti di Excel referensi -->
+    <!-- Baris Cutoff Tanggal di bawah tabel -->
     <tr class="kabeng-date-cutoff-row">
-      <td style="font-weight:800;font-size:0.75rem;background:#f8fafc;color:#475569;">CUTOFF</td>
-      <td colspan="2">${weeks[0].startLabel}</td>
-      <td colspan="2">${weeks[1].startLabel}</td>
-      <td colspan="2">${weeks[2].startLabel}</td>
-      <td colspan="2">${weeks[3].startLabel}</td>
-      <td colspan="2">${weeks[4].startLabel}</td>
-      <td colspan="2" style="font-size:0.75rem;color:#64748b;background:#f8fafc;">1 - ${daysInMonth} ${monthName}</td>
+      <td style="background:#f8fafc;text-align:center;"><span class="kabeng-cutoff-pill">CUTOFF</span></td>
+      <td colspan="2"><span class="kabeng-cutoff-pill">${weeks[0] ? weeks[0].startLabel : '-'}</span></td>
+      <td colspan="2"><span class="kabeng-cutoff-pill">${weeks[1] ? weeks[1].startLabel : '-'}</span></td>
+      <td colspan="2"><span class="kabeng-cutoff-pill">${weeks[2] ? weeks[2].startLabel : '-'}</span></td>
+      <td colspan="2"><span class="kabeng-cutoff-pill">${weeks[3] ? weeks[3].startLabel : '-'}</span></td>
+      <td colspan="2"><span class="kabeng-cutoff-pill">${weeks[4] ? weeks[4].startLabel : '-'}</span></td>
+      <td colspan="2"><span class="kabeng-cutoff-pill">1 - ${daysInMonth} ${monthName}</span></td>
     </tr>
   </tfoot>
   `;
