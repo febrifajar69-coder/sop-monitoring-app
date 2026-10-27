@@ -4398,12 +4398,13 @@ function openKabengCellDetail(saKey, weekIndex) {
         }
 
         let ageBadge = '';
-        if (ataAge === 0) {
-          ageBadge = `<span style="font-size:0.75rem;font-weight:800;color:#15803d;background:#dcfce7;border:1px solid #86efac;padding:2px 8px;border-radius:5px;white-space:nowrap;">0 Hari (Hari Ini)</span>`;
-        } else if (ataAge < 7) {
-          ageBadge = `<span style="font-size:0.75rem;font-weight:800;color:#0284c7;background:#e0f2fe;border:1px solid #7dd3fc;padding:2px 8px;border-radius:5px;white-space:nowrap;">${ataAge} Hari</span>`;
+        if (ataAge <= 7) {
+          const label = ataAge === 0 ? '0 Hari (Hari Ini)' : `${ataAge} Hari`;
+          ageBadge = `<span style="font-size:0.75rem;font-weight:800;color:#15803d;background:#dcfce7;border:1px solid #86efac;padding:3px 8px;border-radius:5px;white-space:nowrap;">${label}</span>`;
+        } else if (ataAge <= 14) {
+          ageBadge = `<span style="font-size:0.75rem;font-weight:800;color:#854d0e;background:#fef08a;border:1px solid #facc15;padding:3px 8px;border-radius:5px;white-space:nowrap;">⚠️ ${ataAge} Hari</span>`;
         } else {
-          ageBadge = `<span style="font-size:0.75rem;font-weight:800;color:#dc2626;background:#fee2e2;border:1px solid #fca5a5;padding:2px 8px;border-radius:5px;white-space:nowrap;">⚠️ ${ataAge} Hari</span>`;
+          ageBadge = `<span style="font-size:0.75rem;font-weight:800;color:#991b1b;background:#fee2e2;border:1px solid #fca5a5;padding:3px 8px;border-radius:5px;white-space:nowrap;">🚨 ${ataAge} Hari</span>`;
         }
 
         return `
