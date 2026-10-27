@@ -1980,6 +1980,7 @@ function renderMonitoringList() {
                 <option value="KNTRK" ${normDp === 'KNTRK' ? 'selected' : ''}>KNTRK</option>
                 <option value="INAP" ${normDp === 'INAP' ? 'selected' : ''}>INAP</option>
                 <option value="W/O DP" ${normDp === 'W/O DP' || normDp === 'W/ODP' || normDp === 'WO DP' ? 'selected' : ''}>W/O DP</option>
+                <option value="TWC" ${normDp === 'TWC' ? 'selected' : ''}>TWC</option>
               </select>
             </div>
 
