@@ -1744,7 +1744,10 @@ function updateSaTabBadges() {
       if (completeGroups.length > 0) {
         badge.innerHTML = `
           <div class="sa-order-count">${groups.length} Order</div>
-          <div class="sa-complete-tag">✓ ${completeGroups.length} Lengkap (${formatRupiah(completeTotalRupiah)})</div>
+          <div class="sa-complete-tag">
+            <span class="sa-complete-unit">✓ ${completeGroups.length} Lengkap</span>
+            <span class="sa-complete-rp">${formatRupiah(completeTotalRupiah)}</span>
+          </div>
         `;
       } else {
         badge.innerHTML = `
