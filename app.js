@@ -2104,7 +2104,7 @@ function renderMonitoringList() {
                               id="${safeDomId}_neweta_${i}"
                               data-rownum="${it.rowNumber}"
                               value="${escapeHtml(isoNewEta)}"
-                              onchange="onShortDateInputChanged(this, '${safeDomId}_neweta_lbl_${i}', '#b45309')"
+                              onchange="onShortDateInputChanged(this, '${safeDomId}_neweta_lbl_${i}', '#b45309', '${safeDomId}', false, '${escapeHtml(saName)}', '${escapeHtml(grp.nopol)}', ${JSON.stringify(grp.rowNumbers)})"
                               style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;"
                             />
                           </div>
@@ -2137,7 +2137,7 @@ function renderMonitoringList() {
                               id="${safeDomId}_ata_${i}"
                               data-rownum="${it.rowNumber}"
                               value="${escapeHtml(isoAta)}"
-                              onchange="onShortDateInputChanged(this, '${safeDomId}_ata_lbl_${i}', '#15803d', '${safeDomId}', true)"
+                              onchange="onShortDateInputChanged(this, '${safeDomId}_ata_lbl_${i}', '#15803d', '${safeDomId}', true, '${escapeHtml(saName)}', '${escapeHtml(grp.nopol)}', ${JSON.stringify(grp.rowNumbers)})"
                               style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;"
                             />
                           </div>
@@ -2716,7 +2716,7 @@ function openShortDatePicker(inputId) {
   input.focus();
 }
 
-function onShortDateInputChanged(inputEl, labelId, activeColor, domPrefix, isAta) {
+function onShortDateInputChanged(inputEl, labelId, activeColor, domPrefix, isAta, sheetName, nopol, rowNumbers) {
   const lbl = document.getElementById(labelId);
   if (!lbl || !inputEl) return;
   const val = (inputEl.value || '').trim();
@@ -2743,6 +2743,11 @@ function onShortDateInputChanged(inputEl, labelId, activeColor, domPrefix, isAta
   } else {
     lbl.textContent = '- Pilih -';
     lbl.style.color = '#94a3b8';
+  }
+
+  // Otomatis simpan perubahan seketika ke Google Spreadsheet
+  if (sheetName && nopol && Array.isArray(rowNumbers) && rowNumbers.length > 0 && domPrefix) {
+    saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix);
   }
 }
 
