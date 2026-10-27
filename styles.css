@@ -83,12 +83,14 @@ body {
   font-weight: 800;
   letter-spacing: -0.01em;
   color: #ffffff;
+  line-height: 1.25;
 }
 
 .brand-subtitle {
   font-size: 0.76rem;
   color: #94a3b8;
   font-weight: 600;
+  margin-top: 3px;
 }
 
 .header-actions {
