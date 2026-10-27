@@ -4165,27 +4165,21 @@ function renderKabengWeeklyReport() {
         </th>
         <th colspan="2" class="kabeng-header-week">
           <span class="kabeng-week-title">W1</span>
-          <span class="kabeng-week-range">${weeks[0] ? weeks[0].dateRangeLabel : '-'}</span>
         </th>
         <th colspan="2" class="kabeng-header-week">
           <span class="kabeng-week-title">W2</span>
-          <span class="kabeng-week-range">${weeks[1] ? weeks[1].dateRangeLabel : '-'}</span>
         </th>
         <th colspan="2" class="kabeng-header-week">
           <span class="kabeng-week-title">W3</span>
-          <span class="kabeng-week-range">${weeks[2] ? weeks[2].dateRangeLabel : '-'}</span>
         </th>
         <th colspan="2" class="kabeng-header-week">
           <span class="kabeng-week-title">W4</span>
-          <span class="kabeng-week-range">${weeks[3] ? weeks[3].dateRangeLabel : '-'}</span>
         </th>
         <th colspan="2" class="kabeng-header-week">
           <span class="kabeng-week-title">W5</span>
-          <span class="kabeng-week-range">${weeks[4] ? weeks[4].dateRangeLabel : '-'}</span>
         </th>
         <th colspan="2" class="kabeng-header-month">
           <span class="kabeng-week-title">TOTAL BULAN</span>
-          <span class="kabeng-week-range" style="color:#e0f2fe;">1 - ${daysInMonth} ${monthName}</span>
         </th>
       </tr>
       <tr>
