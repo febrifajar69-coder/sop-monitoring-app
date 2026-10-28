@@ -1115,8 +1115,11 @@ function updateFollowUpBySA(payload) {
 
       rangeFu.setValues([[fu1, fu2, fu3]]);
 
+      const customFu1Date = payload.fu1Date ? String(payload.fu1Date).trim() : '';
+      const customFu2Date = payload.fu2Date ? String(payload.fu2Date).trim() : '';
+
       if (fu1) {
-        const d1 = meta1.dateStr || todayIso;
+        const d1 = customFu1Date || meta1.dateStr || todayIso;
         recordedFu1Date = d1;
         sheet.getRange(rInt, 14).setNote(buildFuNoteMeta(d1, meta1.remindedDate));
       } else {
@@ -1124,7 +1127,7 @@ function updateFollowUpBySA(payload) {
       }
 
       if (fu2) {
-        const d2 = meta2.dateStr || todayIso;
+        const d2 = customFu2Date || meta2.dateStr || todayIso;
         recordedFu2Date = d2;
         sheet.getRange(rInt, 15).setNote(buildFuNoteMeta(d2, meta2.remindedDate));
       } else {

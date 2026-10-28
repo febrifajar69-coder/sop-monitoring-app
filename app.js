@@ -404,6 +404,7 @@ function switchMainTab(tab) {
   } else if (tab === 'monitoring') {
     renderMonitoringList();
     checkAndShowNotFixPopup(false);
+    checkAndShowFu2ReminderPopup(false);
   } else if (tab === 'kabeng_report') {
     renderKabengWeeklyReport();
   } else if (tab === 'email') {
@@ -1340,6 +1341,7 @@ async function fetchAllMonitoringSheets(showNotification) {
           updateSaTabBadges();
           renderMonitoringList();
           checkAndShowNotFixPopup(false);
+          checkAndShowFu2ReminderPopup(false);
           STATE.isSyncing = false;
           updateSyncBadge();
           if (showNotification) showToast('✓ Data Monitoring berhasil diperbarui dari Google Spreadsheet.');
@@ -1363,6 +1365,7 @@ async function fetchAllMonitoringSheets(showNotification) {
       renderKabengWeeklyReport();
     }
     checkAndShowNotFixPopup(false);
+    checkAndShowFu2ReminderPopup(false);
     STATE.isSyncing = false;
     updateSyncBadge();
     if (showNotification) {
@@ -1607,6 +1610,8 @@ function groupMonitoringItemsByOrder(items) {
         followUp1: item.followUp1,
         followUp2: item.followUp2,
         followUp3: item.followUp3,
+        fu1Date: item.fu1Date || '',
+        fu2Date: item.fu2Date || '',
         rowNumbers: [item.rowNumber],
         items: [item],
         grandTotal: item.total
@@ -1623,6 +1628,8 @@ function groupMonitoringItemsByOrder(items) {
       if (!grp.followUp1 && item.followUp1) grp.followUp1 = item.followUp1;
       if (!grp.followUp2 && item.followUp2) grp.followUp2 = item.followUp2;
       if (!grp.followUp3 && item.followUp3) grp.followUp3 = item.followUp3;
+      if (!grp.fu1Date && item.fu1Date) grp.fu1Date = item.fu1Date;
+      if (!grp.fu2Date && item.fu2Date) grp.fu2Date = item.fu2Date;
       if ((!grp.saPic || grp.saPic === 'OTHER') && item.saPic && item.saPic !== 'OTHER') {
         grp.saPic = item.saPic;
       }
@@ -1632,12 +1639,26 @@ function groupMonitoringItemsByOrder(items) {
   const now = new Date();
   const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
-  // Hitung metadata ATA & usia hari untuk tiap grup No. Polisi
+  // Hitung metadata ATA, Usia Hari & Usia Follow Up 1 untuk tiap grup No. Polisi
   groups.forEach((grp, idx) => {
     grp.originalIndex = idx;
     const orderDateObj = parseFlexibleDateToObj(grp.orderDate);
     const fallbackYear = orderDateObj ? orderDateObj.getFullYear() : now.getFullYear();
     grp.orderTimestamp = orderDateObj ? orderDateObj.getTime() : 0;
+
+    // Sinkronkan dengan local edits jika ada
+    const localFu = STATE.localFollowUpEdits && STATE.localFollowUpEdits[`${grp.sheetName}-${grp.nopol}`];
+    if (localFu) {
+      if (localFu.fu1Date !== undefined) grp.fu1Date = localFu.fu1Date;
+      if (localFu.fu2Date !== undefined) grp.fu2Date = localFu.fu2Date;
+    }
+
+    if (grp.fu1Date) {
+      const fu1Obj = parseFlexibleDateToObj(grp.fu1Date);
+      grp.daysSinceFu1 = fu1Obj ? Math.max(0, Math.floor((todayMidnight - fu1Obj.getTime()) / 86400000)) : 0;
+    } else {
+      grp.daysSinceFu1 = 0;
+    }
     grp.orderAgeDays = orderDateObj
       ? Math.max(0, Math.floor((todayMidnight - orderDateObj.getTime()) / 86400000))
       : 0;
@@ -1770,6 +1791,41 @@ function updateSaTabBadges() {
 }
 
 /**
+ * Helper untuk menentukan skema warna badge berdasarkan Usia Part Lengkap:
+ * - 0 - 7 Hari  : Hijau muda (Normal / Baru Tiba)
+ * - > 7 Hari (8 - 14 Hari) : Kuning (Perhatian / Perlu Follow Up Segera)
+ * - > 14 Hari   : Merah (Kritis / Overdue)
+ */
+function getAtaAgeBadgeStyle(ageDays) {
+  const age = Number(ageDays) || 0;
+  if (age <= 7) {
+    return {
+      bg: '#dcfce7',
+      color: '#15803d',
+      border: '#86efac',
+      label: `${age} Hari (Normal)`,
+      dotColor: '#22c55e'
+    };
+  } else if (age <= 14) {
+    return {
+      bg: '#fef08a',
+      color: '#854d0e',
+      border: '#eab308',
+      label: `${age} Hari (>7 Hari)`,
+      dotColor: '#eab308'
+    };
+  } else {
+    return {
+      bg: '#fee2e2',
+      color: '#991b1b',
+      border: '#fca5a5',
+      label: `${age} Hari (>14 Hari)`,
+      dotColor: '#ef4444'
+    };
+  }
+}
+
+/**
  * Merender Banner KPI Kedatangan Sparepart Lengkap pada Header SA aktif
  * (Menampilkan Total No. Pol dan Total Nilai Rupiah untuk Part yang sudah datang semua)
  */
@@ -1784,18 +1840,22 @@ function renderSaArrivalKpi(saName, allGroups) {
   const pillsHtml = completeGroups.length > 0
     ? `<div style="display:flex;align-items:center;gap:0.45rem;flex-wrap:wrap;margin-top:0.6rem;padding-top:0.55rem;border-top:1px dashed rgba(255,255,255,0.18);">
         <span style="font-size:0.72rem;font-weight:700;color:#cbd5e1;">Nopol Lengkap (Klik untuk lihat):</span>
-        ${completeGroups.map((g) => `
+        ${completeGroups.map((g) => {
+          const ageStyle = getAtaAgeBadgeStyle(g.ataAgeDays);
+          return `
           <button
             type="button"
             onclick="focusNopolCard('${escapeHtml(g.nopol)}')"
             class="badge"
-            style="background:#16a34a;color:#ffffff;border:1px solid #86efac;font-size:0.72rem;font-weight:800;padding:0.2rem 0.55rem;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:0.3rem;"
-            title="Klik untuk langsung menuju kartu ${escapeHtml(g.nopol)}"
+            style="background:${ageStyle.bg};color:${ageStyle.color};border:1px solid ${ageStyle.border};font-size:0.72rem;font-weight:800;padding:0.22rem 0.6rem;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:0.35rem;box-shadow:0 1px 3px rgba(0,0,0,0.15);"
+            title="Usia part lengkap: ${g.ataAgeDays} hari. Klik untuk langsung menuju kartu ${escapeHtml(g.nopol)}"
           >
             <span>✓ ${escapeHtml(g.nopol)}</span>
             <span style="font-size:0.68rem;opacity:0.9;">(${formatRupiah(g.grandTotal)})</span>
+            <span style="font-size:0.65rem;padding:1px 5px;border-radius:4px;background:rgba(0,0,0,0.08);font-weight:900;">${g.ataAgeDays}h</span>
           </button>
-        `).join('')}
+        `;
+        }).join('')}
       </div>`
     : '';
 
@@ -1941,9 +2001,10 @@ function renderMonitoringList() {
       </div>
     ` : '';
 
+    const ageStyle = getAtaAgeBadgeStyle(grp.ataAgeDays);
     const ataStatusBadgeHtml = grp.allItemsArrived
-      ? `<span style="font-size:0.72rem;font-weight:800;padding:0.22rem 0.6rem;border-radius:6px;background:#16a34a;color:#ffffff;border:1px solid #86efac;">
-           📦 Semua Part Datang (ATA: ${escapeHtml(grp.latestAtaDisplay)} • Usia: ${grp.ataAgeDays} Hari)
+      ? `<span style="font-size:0.72rem;font-weight:800;padding:0.22rem 0.6rem;border-radius:6px;background:${ageStyle.bg};color:${ageStyle.color};border:1px solid ${ageStyle.border};box-shadow:0 1px 3px rgba(0,0,0,0.06);display:inline-flex;align-items:center;gap:0.35rem;">
+           <span>📦 Semua Part Datang (ATA: ${escapeHtml(grp.latestAtaDisplay)} • Usia: <strong>${grp.ataAgeDays} Hari</strong>)</span>
          </span>`
       : (grp.someItemsArrived
           ? `<span style="font-size:0.72rem;font-weight:800;padding:0.22rem 0.6rem;border-radius:6px;background:#d97706;color:#ffffff;border:1px solid #fde68a;">
@@ -2186,8 +2247,13 @@ function renderMonitoringList() {
                   />
                 </div>
               </div>
-              <div class="fu-row">
-                <span class="fu-label">Follow Up 1</span>
+              <div class="fu-row" style="flex-direction:column;align-items:stretch;gap:0.2rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span class="fu-label" style="margin-bottom:0;">Follow Up 1</span>
+                  <span id="${safeDomId}_fu1_date_lbl" style="font-size:0.7rem;font-weight:700;color:${grp.fu1Date ? '#0369a1' : '#94a3b8'};">
+                    ${grp.fu1Date ? `📅 ${formatShortDayMonth(grp.fu1Date)}` : '📅 Otomatis saat diisi'}
+                  </span>
+                </div>
                 <input
                   type="text"
                   id="${safeDomId}_fu1"
@@ -2198,8 +2264,13 @@ function renderMonitoringList() {
                   ${perm.isViewerOnly ? 'disabled="disabled"' : `onchange="saveFollowUpGroup('${escapeHtml(saName)}', '${escapeHtml(grp.nopol)}', ${JSON.stringify(grp.rowNumbers)}, '${safeDomId}')"`}
                 />
               </div>
-              <div class="fu-row">
-                <span class="fu-label">Follow Up 2</span>
+              <div class="fu-row" style="flex-direction:column;align-items:stretch;gap:0.2rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span class="fu-label" style="margin-bottom:0;">Follow Up 2</span>
+                  <span id="${safeDomId}_fu2_date_lbl" style="font-size:0.7rem;font-weight:700;color:${grp.fu2Date ? '#0369a1' : '#94a3b8'};">
+                    ${grp.fu2Date ? `📅 ${formatShortDayMonth(grp.fu2Date)}` : '📅 Otomatis saat diisi'}
+                  </span>
+                </div>
                 <input
                   type="text"
                   id="${safeDomId}_fu2"
@@ -2210,8 +2281,11 @@ function renderMonitoringList() {
                   ${perm.isViewerOnly ? 'disabled="disabled"' : `onchange="saveFollowUpGroup('${escapeHtml(saName)}', '${escapeHtml(grp.nopol)}', ${JSON.stringify(grp.rowNumbers)}, '${safeDomId}')"`}
                 />
               </div>
-              <div class="fu-row">
-                <span class="fu-label">Follow Up 3</span>
+              <div class="fu-row" style="flex-direction:column;align-items:stretch;gap:0.2rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span class="fu-label" style="margin-bottom:0;">Follow Up 3</span>
+                  <span style="font-size:0.7rem;font-weight:700;color:#94a3b8;">Catatan Tambahan</span>
+                </div>
                 <input
                   type="text"
                   id="${safeDomId}_fu3"
@@ -2308,6 +2382,29 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
     if (statusEl) statusEl.value = 'ARRIVAL';
   }
 
+  const grp = STATE.currentRenderedGroups[domPrefix];
+  const todayIso = formatDateInput(new Date());
+
+  // Otomatis tentukan tanggal Follow Up 1 saat diisi
+  let fu1DateVal = grp ? (grp.fu1Date || '') : '';
+  if (fu1 && !fu1DateVal) {
+    fu1DateVal = todayIso;
+    if (grp) grp.fu1Date = todayIso;
+  } else if (!fu1) {
+    fu1DateVal = '';
+    if (grp) grp.fu1Date = '';
+  }
+
+  // Otomatis tentukan tanggal Follow Up 2 saat diisi
+  let fu2DateVal = grp ? (grp.fu2Date || '') : '';
+  if (fu2 && !fu2DateVal) {
+    fu2DateVal = todayIso;
+    if (grp) grp.fu2Date = todayIso;
+  } else if (!fu2) {
+    fu2DateVal = '';
+    if (grp) grp.fu2Date = '';
+  }
+
   const btn = document.getElementById(`${domPrefix}_btn`);
   const origText = btn ? btn.innerHTML : '';
   if (btn) {
@@ -2320,6 +2417,8 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
     fu1,
     fu2,
     fu3,
+    fu1Date: fu1DateVal,
+    fu2Date: fu2DateVal,
     orderNo: orderNoVal,
     note: noteVal,
     dp: dpVal || undefined,
@@ -2334,6 +2433,8 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
       it.followUp1 = fu1;
       it.followUp2 = fu2;
       it.followUp3 = fu3;
+      it.fu1Date = fu1DateVal;
+      it.fu2Date = fu2DateVal;
       if (orderNoVal !== undefined) it.orderNo = orderNoVal;
       if (noteVal !== undefined) it.note = noteVal;
       if (dpVal) it.dp = dpVal;
@@ -2366,6 +2467,8 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
           followUp1: fu1,
           followUp2: fu2,
           followUp3: fu3,
+          fu1Date: fu1DateVal,
+          fu2Date: fu2DateVal,
           orderNo: orderNoVal,
           note: noteVal,
           dp: dpVal || undefined,
@@ -2394,7 +2497,18 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
     if (orderNoSpan) {
       orderNoSpan.innerHTML = orderNoVal ? ` • No. Order: <strong style="color:#ffffff;">${escapeHtml(orderNoVal)}</strong>` : '';
     }
+    const fu1Lbl = document.getElementById(`${domPrefix}_fu1_date_lbl`);
+    if (fu1Lbl) {
+      fu1Lbl.textContent = fu1DateVal ? `📅 ${formatShortDayMonth(fu1DateVal)}` : '📅 Otomatis saat diisi';
+      fu1Lbl.style.color = fu1DateVal ? '#0369a1' : '#94a3b8';
+    }
+    const fu2Lbl = document.getElementById(`${domPrefix}_fu2_date_lbl`);
+    if (fu2Lbl) {
+      fu2Lbl.textContent = fu2DateVal ? `📅 ${formatShortDayMonth(fu2DateVal)}` : '📅 Otomatis saat diisi';
+      fu2Lbl.style.color = fu2DateVal ? '#0369a1' : '#94a3b8';
+    }
     updateSaTabBadges();
+    checkAndShowFu2ReminderPopup(false);
   }
 }
 
@@ -3325,6 +3439,241 @@ async function quickCancelNotFixOrder(sheetName, nopol, rowNumbers) {
         })
       });
     } catch (e) {}
+  }
+}
+
+/**
+ * ============================================================================
+ * POP-UP PERINGATAN OTOMATIS H+7 UNTUK FOLLOW UP KE-2
+ * ============================================================================
+ */
+let HAS_SHOWN_FU2_POPUP_SESSION = false;
+
+function getOverdueFu2Groups() {
+  const overdueList = [];
+  const sheets = (window.SOP_CONFIG && window.SOP_CONFIG.SA_SHEETS) || ['AJS', 'AYU', 'FIK', 'WBN', 'OTHER'];
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+  sheets.forEach((sa) => {
+    const rawItems = STATE.monitoringBySheet[sa] || [];
+    const groups = groupMonitoringItemsByOrder(rawItems);
+    groups.forEach((grp) => {
+      // Syarat unit perlu Follow Up 2:
+      // 1. Follow Up 1 sudah diisi
+      // 2. Follow Up 2 masih kosong
+      // 3. Sudah >= 7 hari sejak Follow Up 1 diisi (atau fallback ke usia order jika tgl FU1 belum terekam)
+      if (grp.followUp1 && (!grp.followUp2 || grp.followUp2.trim() === '')) {
+        let diffDays = grp.daysSinceFu1;
+        if (!diffDays && grp.orderAgeDays >= 7) {
+          diffDays = grp.orderAgeDays;
+        }
+        if (diffDays >= 7) {
+          grp.fu2OverdueDays = diffDays;
+          overdueList.push(grp);
+        }
+      }
+    });
+  });
+
+  // Urutkan dari yang paling lama tertunda (H+ terbesar di atas)
+  overdueList.sort((a, b) => (b.fu2OverdueDays || 0) - (a.fu2OverdueDays || 0));
+  return overdueList;
+}
+
+function checkAndShowFu2ReminderPopup(forceOpen) {
+  const overdueList = getOverdueFu2Groups();
+  const topBtn = document.getElementById('btnOpenFu2Modal');
+  const countEl = document.getElementById('fu2AlertCount');
+
+  if (countEl) countEl.textContent = String(overdueList.length);
+  if (topBtn) {
+    topBtn.classList.toggle('hidden', overdueList.length === 0);
+  }
+
+  if (overdueList.length === 0) {
+    const modal = document.getElementById('fu2ReminderModal');
+    if (modal) modal.classList.add('hidden');
+    return;
+  }
+
+  const todayKey = formatDateInput(new Date());
+  const snoozedDate = localStorage.getItem('SOP_FU2_SNOOZE_DATE') || '';
+
+  if (forceOpen || (!HAS_SHOWN_FU2_POPUP_SESSION && snoozedDate !== todayKey)) {
+    HAS_SHOWN_FU2_POPUP_SESSION = true;
+    openFu2ReminderPopup(false);
+  }
+}
+
+function openFu2ReminderPopup(forceRender) {
+  const overdueList = getOverdueFu2Groups();
+  const modal = document.getElementById('fu2ReminderModal');
+  const listEl = document.getElementById('fu2ModalList');
+  const subEl = document.getElementById('fu2ModalSubtitle');
+  if (!modal || !listEl) return;
+
+  if (overdueList.length === 0) {
+    modal.classList.add('hidden');
+    if (forceRender) {
+      showToast('✅ Hebat! Tidak ada unit yang tertunda Follow Up 2 (H+7).');
+    }
+    return;
+  }
+
+  if (subEl) {
+    subEl.innerHTML = `Terdapat <strong>${overdueList.length} No. Polisi</strong> yang sudah <strong>&ge; 7 hari (H+7)</strong> sejak Follow Up 1 namun belum ada tindak lanjut / Follow Up 2:`;
+  }
+
+  listEl.innerHTML = overdueList.map((grp, idx) => {
+    const safeSa = escapeHtml(grp.sheetName || 'SA');
+    const safeNopol = escapeHtml(grp.nopol);
+    const fu1DateStr = grp.fu1Date ? formatShortDayMonth(grp.fu1Date) : 'Sebelumnya';
+    const overdueDays = grp.fu2OverdueDays || 7;
+    const safeDomId = `fu2_pop_${grp.sheetName}_${escapeHtml(grp.nopol).replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const rowNumsJson = JSON.stringify(grp.rowNumbers || []);
+
+    const partSummary = grp.items
+      .slice(0, 3)
+      .map((it) => `${escapeHtml(it.partName)} (${it.qty}x)`)
+      .join(', ') + (grp.items.length > 3 ? ` +${grp.items.length - 3} lainnya` : '');
+
+    return `
+      <div style="background:#ffffff;border:1.5px solid #fde68a;border-left:5px solid #d97706;border-radius:10px;padding:0.95rem 1.15rem;box-shadow:0 3px 10px rgba(9,9,11,0.06);display:flex;flex-direction:column;gap:0.55rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+          <div style="display:flex;align-items:center;gap:0.55rem;flex-wrap:wrap;">
+            <span style="font-size:0.78rem;font-weight:900;color:#71717a;">#${idx + 1}</span>
+            <span class="nopol-badge" style="font-size:0.88rem;padding:0.25rem 0.65rem;">${safeNopol}</span>
+            <span style="font-size:0.75rem;font-weight:800;padding:0.22rem 0.55rem;border-radius:6px;background:#18181b;color:#ffffff;">
+              Sheet ${safeSa} (SA/PIC: ${escapeHtml(grp.saPic || grp.sheetName)})
+            </span>
+            <span style="font-size:0.75rem;font-weight:800;padding:0.22rem 0.55rem;border-radius:6px;background:#fef3c7;color:#b45309;border:1px solid #fde68a;">
+              ⏰ Sudah H+${overdueDays} Sejak FU 1
+            </span>
+          </div>
+          <div style="font-size:0.82rem;font-weight:800;color:#09090b;">
+            ${grp.items.length} Item &bull; <span style="color:#d97706;">${formatRupiah(grp.grandTotal)}</span>
+          </div>
+        </div>
+
+        <div style="font-size:0.8rem;color:#3f3f46;background:#f8fafc;padding:0.55rem 0.75rem;border-radius:6px;border:1px solid #e4e4e7;">
+          <div><strong>Item Part:</strong> ${partSummary}</div>
+          <div style="margin-top:0.25rem;">
+            <strong>Hasil Follow Up 1 (${fu1DateStr}):</strong>
+            <span style="color:#0f172a;font-weight:700;">&ldquo;${escapeHtml(grp.followUp1)}&rdquo;</span>
+          </div>
+        </div>
+
+        <div style="background:#fffbeb;border:1px solid #fef3c7;padding:0.55rem 0.75rem;border-radius:6px;">
+          <div style="font-size:0.74rem;font-weight:800;color:#92400e;margin-bottom:0.35rem;">
+            ✏️ Input Hasil Follow Up Ke-2 Sekarang:
+          </div>
+          <div style="display:flex;gap:0.45rem;flex-wrap:wrap;">
+            <input
+              type="text"
+              id="${safeDomId}_input"
+              class="input input-sm input-uppercase"
+              style="flex:1;min-width:220px;border-color:#f59e0b;font-weight:700;"
+              placeholder="Contoh: SUDAH KONFIRMASI / BOOKING JUMAT / DLL"
+            />
+            <button
+              type="button"
+              id="${safeDomId}_btn"
+              class="btn btn-sm btn-primary"
+              style="background:#d97706;border-color:#b45309;font-weight:800;white-space:nowrap;"
+              onclick='saveFu2FromPopup("${safeSa}", "${safeNopol}", ${rowNumsJson}, "${safeDomId}")'
+            >
+              💾 Simpan FU 2
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              style="font-size:0.75rem;font-weight:700;"
+              onclick='closeFu2Popup(false); focusNopolCard("${safeNopol}");'
+              title="Buka dan lihat kartu order ini di halaman utama"
+            >
+              🔍 Buka Kartu
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  modal.classList.remove('hidden');
+}
+
+function closeFu2Popup(snoozeForToday) {
+  const modal = document.getElementById('fu2ReminderModal');
+  if (modal) modal.classList.add('hidden');
+  if (snoozeForToday) {
+    localStorage.setItem('SOP_FU2_SNOOZE_DATE', formatDateInput(new Date()));
+    showToast('🔕 Pengingat Pop-Up Follow Up 2 H+7 dijeda hingga besok.');
+  }
+}
+
+async function saveFu2FromPopup(sheetName, nopol, rowNumbers, safeDomId) {
+  const inputEl = document.getElementById(`${safeDomId}_input`);
+  const btnEl = document.getElementById(`${safeDomId}_btn`);
+  if (!inputEl) return;
+  const fu2Val = (inputEl.value || '').trim().toUpperCase();
+  if (!fu2Val) {
+    showToast('⚠️ Mohon ketikkan hasil Follow Up 2 terlebih dahulu.', true);
+    inputEl.focus();
+    return;
+  }
+
+  const origBtnText = btnEl ? btnEl.innerHTML : '';
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = '⏳ Menyimpan...';
+  }
+
+  const todayIso = formatDateInput(new Date());
+
+  // Simpan ke local edits
+  const existingEdits = STATE.localFollowUpEdits[`${sheetName}-${nopol}`] || {};
+  existingEdits.fu2 = fu2Val;
+  existingEdits.fu2Date = todayIso;
+  STATE.localFollowUpEdits[`${sheetName}-${nopol}`] = existingEdits;
+  localStorage.setItem('SOP_LOCAL_FU_EDITS', JSON.stringify(STATE.localFollowUpEdits));
+
+  // Update item di memory
+  const sheetItems = STATE.monitoringBySheet[sheetName] || [];
+  sheetItems.forEach((it) => {
+    if (it.nopol === nopol) {
+      it.followUp2 = fu2Val;
+      it.fu2Date = todayIso;
+    }
+  });
+
+  // Kirim ke API Spreadsheet
+  try {
+    if (STATE.apiUrl) {
+      await fetch(STATE.apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'updateFollowUp',
+          sheetName: sheetName,
+          nopol: nopol,
+          rowNumber: rowNumbers[0],
+          rowNumbers: rowNumbers,
+          followUp2: fu2Val,
+          fu2Date: todayIso
+        })
+      });
+    }
+    showToast(`✅ Follow Up 2 untuk ${nopol} berhasil disimpan!`);
+  } catch (err) {
+    showToast(`✅ Tersimpan di perangkat lokal untuk ${nopol}.`);
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = origBtnText;
+    }
+    renderMonitoringList();
+    checkAndShowFu2ReminderPopup(false);
   }
 }
 

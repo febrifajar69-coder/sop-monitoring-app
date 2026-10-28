@@ -55,6 +55,17 @@
           ⚠️ <span id="notFixAlertCount">0</span> NOT FIX (H+7)
         </button>
 
+        <button
+          type="button"
+          id="btnOpenFu2Modal"
+          class="btn btn-sm hidden"
+          onclick="openFu2ReminderPopup(true)"
+          style="background:linear-gradient(135deg,#d97706 0%,#b45309 100%);color:#fff;border:1.5px solid #fde68a;box-shadow:0 0 12px rgba(217,119,6,0.45);font-weight:800;"
+          title="Lihat daftar unit yang sudah >= H+7 sejak Follow Up 1 dan perlu Follow Up 2"
+        >
+          ⏰ <span id="fu2AlertCount">0</span> PERLU FU 2 (H+7)
+        </button>
+
         <!-- TPOS User Greeting & Live Date (Sesuai Gambar 1) -->
         <div class="tpos-user-greeting">
           <span class="tpos-bell-icon" title="Notifikasi Sistem">🔔</span>
@@ -1128,6 +1139,43 @@
         </button>
         <div style="display:flex;align-items:center;gap:0.55rem;">
           <button type="button" class="btn btn-primary btn-sm" onclick="closeNotFixPopup(false)">
+            Tutup Pop-Up
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POP-UP PERINGATAN H+7 UNTUK FOLLOW UP KE-2 -->
+  <div id="fu2ReminderModal" class="modal-backdrop hidden no-print" onclick="if(event.target===this) closeFu2Popup(false)">
+    <div class="modal-box" style="max-width:800px;padding:0;overflow:hidden;border:2px solid #d97706;box-shadow:0 24px 48px rgba(9,9,11,0.55);">
+      <!-- Header Pop-Up Gaya Executive Amber -->
+      <div style="background:linear-gradient(115deg,#09090b 0%,#18181b 55%,#78350f 88%,#d97706 100%);color:#ffffff;padding:1.1rem 1.35rem;border-bottom:3px solid #d97706;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">
+        <div>
+          <div style="display:flex;align-items:center;gap:0.55rem;font-size:1.05rem;font-weight:900;letter-spacing:0.01em;">
+            <span>⏰ PERINGATAN H+7: PERLU FOLLOW UP KE-2</span>
+          </div>
+          <div id="fu2ModalSubtitle" style="font-size:0.8rem;color:#fde68a;margin-top:0.2rem;font-weight:600;">
+            Daftar unit yang sudah &ge; 7 hari sejak Follow Up 1 namun belum ada tindak lanjut / Follow Up 2.
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" style="background:rgba(255,255,255,0.12);color:#fff;border-color:rgba(255,255,255,0.3);" onclick="closeFu2Popup(false)">
+          ✕
+        </button>
+      </div>
+
+      <!-- Isi Daftar Kartu Order Perlu Follow Up 2 -->
+      <div id="fu2ModalList" style="padding:1.15rem 1.35rem;max-height:62vh;overflow-y:auto;background:#f4f5f8;display:flex;flex-direction:column;gap:0.85rem;">
+        <!-- Dirender secara dinamis oleh app.js -->
+      </div>
+
+      <!-- Footer Pop-Up -->
+      <div style="background:#18181b;color:#e4e4e7;padding:0.85rem 1.35rem;border-top:1px solid #27272a;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.65rem;">
+        <button type="button" class="btn btn-outline btn-sm" style="background:transparent;color:#fde68a;border-color:#b45309;" onclick="closeFu2Popup(true)">
+          🔕 Ingatkan Lagi Besok
+        </button>
+        <div style="display:flex;align-items:center;gap:0.55rem;">
+          <button type="button" class="btn btn-primary btn-sm" style="background:#d97706;border-color:#b45309;" onclick="closeFu2Popup(false)">
             Tutup Pop-Up
           </button>
         </div>
