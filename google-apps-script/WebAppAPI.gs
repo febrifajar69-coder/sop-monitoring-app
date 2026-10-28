@@ -1554,7 +1554,7 @@ function deleteCancelledOrderFromMonitoring(payload) {
 
   return {
     status: 'ok',
-    message: 'Order NOT FIX ' + targetNopol + ' berhasil dihapus dari Sheet ' + sheetName + '.'
+    message: 'Pesanan ' + targetNopol + ' berhasil dihapus dari Sheet ' + sheetName + '.'
   };
 }
 

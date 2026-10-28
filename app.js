@@ -2093,6 +2093,16 @@ function renderMonitoringList() {
             >
               ✓ Job Done
             </button>
+            <button
+              type="button"
+              id="${safeDomId}_delete_btn"
+              class="btn btn-outline btn-sm"
+              style="color:#ef4444;border-color:#fca5a5;background:rgba(239,68,68,0.06);font-weight:700;"
+              onclick="cancelAndDeleteOrder('${safeDomId}')"
+              title="Hapus data pesanan ${escapeHtml(grp.nopol)} dari aplikasi dan Google Spreadsheet jika batal order"
+            >
+              🗑 Hapus
+            </button>
             `}
           </div>
         </div>
@@ -2640,6 +2650,127 @@ async function markOrderJobDone(domPrefix) {
 
   updateSaTabBadges();
   renderMonitoringList();
+}
+
+/**
+ * Menghapus pesanan jika batal order langsung dari kartu No Pol
+ * sekaligus menghapus baris-barisnya dari Google Spreadsheet
+ */
+async function cancelAndDeleteOrder(domPrefixOrSheetName, explicitNopol, explicitRowNumbers) {
+  const perm = getUserPermissions(STATE.currentUser);
+  if (perm.isViewerOnly) {
+    showToast('⚠️ Mode Viewer: Akun Anda adalah viewer dan tidak memiliki izin untuk menghapus data order.', true);
+    return;
+  }
+
+  let sheetName = '';
+  let nopol = '';
+  let rowNumbers = [];
+  let domPrefix = '';
+
+  if (typeof domPrefixOrSheetName === 'string' && STATE.currentRenderedGroups && STATE.currentRenderedGroups[domPrefixOrSheetName]) {
+    domPrefix = domPrefixOrSheetName;
+    const grp = STATE.currentRenderedGroups[domPrefix];
+    sheetName = grp.sheetName || '';
+    nopol = grp.nopol || '';
+    rowNumbers = grp.rowNumbers || [];
+  } else {
+    sheetName = domPrefixOrSheetName || '';
+    nopol = explicitNopol || '';
+    rowNumbers = explicitRowNumbers || [];
+  }
+
+  if (!nopol || !sheetName) {
+    showToast('⚠️ Data pesanan tidak ditemukan.', true);
+    return;
+  }
+
+  const ok = window.confirm(
+    `Apakah Anda yakin ingin MENGHAPUS pesanan No. Polisi ${nopol} (Sheet ${sheetName})?\n\n` +
+    `• Data pesanan dan seluruh part untuk ${nopol} akan dihapus permanen dari aplikasi dan Google Spreadsheet.\n` +
+    `• Gunakan fitur ini jika pelanggan batal melakukan order.`
+  );
+  if (!ok) return;
+
+  if (domPrefix) {
+    const btn = document.getElementById(`${domPrefix}_delete_btn`);
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Menghapus...';
+    }
+    const cardEl = document.getElementById(`card_${domPrefix}`);
+    if (cardEl) {
+      cardEl.style.transition = 'all 0.3s ease';
+      cardEl.style.opacity = '0.3';
+      cardEl.style.transform = 'scale(0.98)';
+    }
+  }
+
+  // 1. Catat ke completedJobs / deleted lokal agar tidak muncul lagi
+  const doneKey = `${sheetName}::${nopol.toUpperCase()}`;
+  if (!STATE.completedJobs) STATE.completedJobs = {};
+  STATE.completedJobs[doneKey] = {
+    nopol: nopol,
+    sheetName: sheetName,
+    deletedAt: new Date().toISOString()
+  };
+  localStorage.setItem('SOP_COMPLETED_JOBS', JSON.stringify(STATE.completedJobs));
+
+  // 2. Hapus dari STATE.monitoringBySheet
+  if (Array.isArray(STATE.monitoringBySheet[sheetName])) {
+    STATE.monitoringBySheet[sheetName] = STATE.monitoringBySheet[sheetName].filter(
+      (it) => String(it.nopol || '').trim().toUpperCase() !== nopol.toUpperCase()
+    );
+  }
+
+  // 3. Hapus dari local submitted orders jika ada
+  if (Array.isArray(STATE.localSubmittedOrders)) {
+    STATE.localSubmittedOrders = STATE.localSubmittedOrders.filter(
+      (it) => !(it.sheetName === sheetName && String(it.nopol || '').trim().toUpperCase() === nopol.toUpperCase())
+    );
+    localStorage.setItem('SOP_LOCAL_ORDERS', JSON.stringify(STATE.localSubmittedOrders));
+  }
+
+  // 4. Bersihkan edit follow up lokal jika ada
+  if (STATE.localFollowUpEdits && typeof STATE.localFollowUpEdits === 'object') {
+    Object.keys(STATE.localFollowUpEdits).forEach((key) => {
+      if (key.includes(nopol.toUpperCase()) || key.startsWith(`${sheetName}__${nopol}`) || key.startsWith(`${sheetName}::${nopol}`)) {
+        delete STATE.localFollowUpEdits[key];
+      }
+    });
+  }
+
+  // 5. Kirim perintah hapus ke WebAppAPI.gs
+  try {
+    if (STATE.apiUrl) {
+      const resp = await fetch(STATE.apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'deleteCancelledOrder',
+          sheetName: sheetName,
+          nopol: nopol,
+          rowNumbers: Array.isArray(rowNumbers) ? rowNumbers : []
+        })
+      });
+      const resJson = await resp.json().catch(() => null);
+      if (resJson && resJson.status === 'ok') {
+        showToast(`🗑 ${resJson.message || `Pesanan ${nopol} berhasil dihapus dari Spreadsheet.`}`);
+      } else {
+        showToast(`🗑 Pesanan ${nopol} berhasil dihapus dari Monitoring SOP.`);
+      }
+    } else {
+      showToast(`🗑 Pesanan ${nopol} berhasil dihapus dari Monitoring SOP.`);
+    }
+  } catch (err) {
+    console.error('Error deleting cancelled order:', err);
+    showToast(`🗑 Pesanan ${nopol} telah dihapus dari aplikasi.`);
+  } finally {
+    updateSaTabBadges();
+    renderMonitoringList();
+    if (typeof checkAndShowNotFixPopup === 'function') checkAndShowNotFixPopup(false);
+    if (typeof checkAndShowFu2ReminderPopup === 'function') checkAndShowFu2ReminderPopup(false);
+  }
 }
 
 /**
@@ -3395,51 +3526,8 @@ function jumpToNotFixCard(sheetName, nopol) {
 }
 
 async function quickCancelNotFixOrder(sheetName, nopol, rowNumbers) {
-  const perm = getUserPermissions(STATE.currentUser);
-  if (perm.isViewerOnly) {
-    showToast('⚠️ Mode Viewer: Akun Anda adalah viewer dan tidak memiliki izin untuk membatalkan order.', true);
-    return;
-  }
-
-  const ok = window.confirm(
-    `Apakah Anda yakin No. Polisi ${nopol} (Sheet ${sheetName}) BATAL ORDER dan ingin dihapus dari daftar Monitoring SOP?`
-  );
-  if (!ok) return;
-
-  const doneKey = `${sheetName}::${nopol.toUpperCase()}`;
-  STATE.completedJobs[doneKey] = {
-    nopol: nopol,
-    sheetName: sheetName,
-    cancelledAt: new Date().toISOString()
-  };
-  localStorage.setItem('SOP_COMPLETED_JOBS', JSON.stringify(STATE.completedJobs));
-
-  if (STATE.monitoringBySheet[sheetName]) {
-    STATE.monitoringBySheet[sheetName] = STATE.monitoringBySheet[sheetName].filter(
-      (it) => String(it.nopol || '').trim().toUpperCase() !== nopol.toUpperCase()
-    );
-  }
-
-  updateSaTabBadges();
-  renderMonitoringList();
   openNotFixPopup(false);
-  checkAndShowNotFixPopup(false);
-  showToast(`🗑 Order NOT FIX ${nopol} berhasil dihapus dari Monitoring SOP.`);
-
-  if (STATE.apiUrl && Array.isArray(rowNumbers) && rowNumbers.length > 0) {
-    try {
-      await fetch(STATE.apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'deleteCancelledOrder',
-          sheetName: sheetName,
-          nopol: nopol,
-          rowNumbers: rowNumbers
-        })
-      });
-    } catch (e) {}
-  }
+  await cancelAndDeleteOrder(sheetName, nopol, rowNumbers);
 }
 
 /**
