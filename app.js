@@ -1655,9 +1655,9 @@ function groupMonitoringItemsByOrder(items) {
 
     if (grp.fu1Date) {
       const fu1Obj = parseFlexibleDateToObj(grp.fu1Date);
-      grp.daysSinceFu1 = fu1Obj ? Math.max(0, Math.floor((todayMidnight - fu1Obj.getTime()) / 86400000)) : 0;
+      grp.daysSinceFu1 = fu1Obj ? Math.max(0, Math.floor((todayMidnight - fu1Obj.getTime()) / 86400000)) : null;
     } else {
-      grp.daysSinceFu1 = 0;
+      grp.daysSinceFu1 = null;
     }
     grp.orderAgeDays = orderDateObj
       ? Math.max(0, Math.floor((todayMidnight - orderDateObj.getTime()) / 86400000))
@@ -3462,13 +3462,19 @@ function getOverdueFu2Groups() {
       // Syarat unit perlu Follow Up 2:
       // 1. Follow Up 1 sudah diisi
       // 2. Follow Up 2 masih kosong
-      // 3. Sudah >= 7 hari sejak Follow Up 1 diisi (atau fallback ke usia order jika tgl FU1 belum terekam)
+      // 3. Sudah >= 7 hari (H+7) sejak tanggal Follow Up 1 diinput
       if (grp.followUp1 && (!grp.followUp2 || grp.followUp2.trim() === '')) {
-        let diffDays = grp.daysSinceFu1;
-        if (!diffDays && grp.orderAgeDays >= 7) {
-          diffDays = grp.orderAgeDays;
+        let diffDays = null;
+        if (grp.fu1Date) {
+          const fu1Obj = parseFlexibleDateToObj(grp.fu1Date);
+          if (fu1Obj) {
+            diffDays = Math.max(0, Math.floor((todayMidnight - fu1Obj.getTime()) / 86400000));
+          }
         }
-        if (diffDays >= 7) {
+
+        // HANYA masukkan jika tanggal Follow Up 1 benar-benar sudah lewat >= 7 hari!
+        // Jika baru diinput hari ini (diffDays = 0) atau belum H+7, TIDAK boleh muncul popup!
+        if (typeof diffDays === 'number' && diffDays >= 7) {
           grp.fu2OverdueDays = diffDays;
           overdueList.push(grp);
         }
