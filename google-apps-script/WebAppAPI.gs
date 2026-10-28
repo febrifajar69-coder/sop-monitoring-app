@@ -966,16 +966,29 @@ function submitOrderToMonitoring(order) {
     insertedRows.push(targetRow);
   }
 
+  let rawSyncResult = null;
   try {
-    syncToFormSpreadsheet(order, picNameForColR);
-  } catch (syncErr) {}
+    rawSyncResult = syncToFormSpreadsheet(order, picNameForColR);
+  } catch (syncErr) {
+    try {
+      rawSyncResult = syncCustomerToRawSheet(order);
+    } catch (rawErr) {}
+  }
+
+  let rawExtraMsg = '';
+  if (rawSyncResult && rawSyncResult.action === 'created') {
+    rawExtraMsg = ' Data pelanggan baru otomatis tersimpan di Sheet RAW.';
+  } else if (rawSyncResult && rawSyncResult.action === 'updated') {
+    rawExtraMsg = ' Data pelanggan di Sheet RAW berhasil dilengkapi.';
+  }
 
   return {
     status: 'ok',
-    message: 'Berhasil mengirim ' + order.items.length + ' item part (' + order.nopol + ') ke Sheet ' + targetSheetName + ' pada Baris ' + insertedRows.join(', ') + ' (Status: ' + orderStatus + ').',
+    message: 'Berhasil mengirim ' + order.items.length + ' item part (' + order.nopol + ') ke Sheet ' + targetSheetName + ' pada Baris ' + insertedRows.join(', ') + ' (Status: ' + orderStatus + ').' + rawExtraMsg,
     targetSheet: targetSheetName,
     pic: picNameForColR,
-    insertedRows: insertedRows
+    insertedRows: insertedRows,
+    rawCustomerAction: rawSyncResult ? rawSyncResult.action : null
   };
 }
 
@@ -1575,13 +1588,92 @@ function parseFlexibleDate(str) {
 }
 
 /**
+ * Menyimpan data pelanggan baru atau melengkapi data ke Sheet 'RAW' di SPREADSHEET_FORM_ID
+ * Jika Nomor Polisi belum ada di Sheet RAW, buat baris baru (Kolom A-D).
+ * Jika Nomor Polisi sudah ada, lengkapi kolom nama/telepon/alamat yang masih kosong.
+ */
+function syncCustomerToRawSheet(order, optSsForm) {
+  if (!order) return null;
+  const nopol = String(order.nopol || '').trim().toUpperCase();
+  if (!nopol) return null;
+
+  const custName = String(order.customerName || '').trim().toUpperCase();
+  const phone = formatPhone(order.phone);
+  const address = String(order.address || '').trim().toUpperCase();
+
+  // Jika nama, telepon, dan alamat semuanya kosong, tidak ada data pelanggan yang perlu disimpan
+  if (!custName && !phone && !address) return null;
+
+  const ssForm = optSsForm || SpreadsheetApp.openById(SPREADSHEET_FORM_ID);
+  const rawSheet = ssForm.getSheetByName('RAW');
+  if (!rawSheet) return null;
+
+  const lastRow = rawSheet.getLastRow();
+  if (lastRow < 2) {
+    // Sheet RAW belum ada data pelanggan (hanya header baris 1 atau kosong)
+    rawSheet.appendRow([nopol, custName, phone, address]);
+    return { action: 'created', row: 2, nopol: nopol };
+  }
+
+  const nopolVals = rawSheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  let foundRow = -1;
+
+  for (let i = 0; i < nopolVals.length; i++) {
+    if (String(nopolVals[i][0] || '').trim().toUpperCase() === nopol) {
+      foundRow = i + 2;
+      break;
+    }
+  }
+
+  if (foundRow === -1) {
+    // Belum terdaftar di Sheet RAW -> Tambahkan baris baru di paling bawah
+    rawSheet.appendRow([nopol, custName, phone, address]);
+    return { action: 'created', row: lastRow + 1, nopol: nopol };
+  }
+
+  // Jika sudah ada, periksa apakah ada data nama/telepon/alamat yang kosong di RAW untuk dilengkapi
+  const curVals = rawSheet.getRange(foundRow, 1, 1, 4).getValues()[0];
+  const curName = String(curVals[1] || '').trim();
+  const curPhone = String(curVals[2] || '').trim();
+  const curAddr = String(curVals[3] || '').trim();
+  let updated = false;
+
+  if (!curName && custName) {
+    rawSheet.getRange(foundRow, 2).setValue(custName);
+    updated = true;
+  }
+  if (!curPhone && phone) {
+    rawSheet.getRange(foundRow, 3).setValue(phone);
+    updated = true;
+  }
+  if (!curAddr && address) {
+    rawSheet.getRange(foundRow, 4).setValue(address);
+    updated = true;
+  }
+
+  return updated
+    ? { action: 'updated', row: foundRow, nopol: nopol }
+    : { action: 'exists', row: foundRow, nopol: nopol };
+}
+
+/**
  * Sinkronisasi data terakhir ke SOP LEMBAR1 & SOP LEMBAR2 di Spreadsheet 1
  */
 function syncToFormSpreadsheet(order, picDisplay) {
   const ssForm = SpreadsheetApp.openById(SPREADSHEET_FORM_ID);
+
+  // 1. Sinkronisasi data pelanggan baru atau update ke Sheet 'RAW'
+  let rawResult = null;
+  try {
+    rawResult = syncCustomerToRawSheet(order, ssForm);
+  } catch (rawErr) {
+    Logger.log('Gagal sync ke Sheet RAW: ' + rawErr);
+  }
+
+  // 2. Sinkronisasi data ke Form SOP Lembar 1 & Lembar 2
   const s1 = ssForm.getSheetByName('SOP LEMBAR1');
   const s2 = ssForm.getSheetByName('SOP LEMBAR2');
-  if (!s1) return;
+  if (!s1) return rawResult;
 
   s1.getRange('J7').setValue(String(order.nopol || '').trim().toUpperCase());
   s1.getRange('J11').setValue(picDisplay);
@@ -1612,6 +1704,8 @@ function syncToFormSpreadsheet(order, picDisplay) {
   if (s2 && order.orderNo !== undefined) {
     s2.getRange('K7').setValue(String(order.orderNo || '').trim().toUpperCase());
   }
+
+  return rawResult;
 }
 
 function formatPhone(val) {

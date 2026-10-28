@@ -494,20 +494,43 @@ function queryRawSheetByNopol(nopolQuery, autoApplyFirst) {
   const safeQuery = nopolQuery.replace(/'/g, '');
   const tq = `SELECT A, B, C, D WHERE upper(A) CONTAINS '${safeQuery}' LIMIT 12`;
 
+  if (!Array.isArray(STATE.localRawCustomers)) {
+    try {
+      STATE.localRawCustomers = JSON.parse(localStorage.getItem('SOP_LOCAL_RAW_CUSTOMERS') || '[]');
+    } catch (e) {
+      STATE.localRawCustomers = [];
+    }
+  }
+  const cleanQ = nopolQuery.trim().toUpperCase();
+  const localMatches = STATE.localRawCustomers.filter((c) =>
+    c.nopol && c.nopol.toUpperCase().includes(cleanQ)
+  );
+
   fetchGvizSheet(formSheetId, 'RAW', tq)
     .then((rows) => {
-      if (!rows || rows.length === 0) {
+      let gvizMatches = [];
+      if (Array.isArray(rows) && rows.length > 0) {
+        gvizMatches = rows.map((r) => ({
+          nopol: String(r[0] || '').trim(),
+          customerName: String(r[1] || '').trim(),
+          phone: formatPhoneDisplay(r[2]),
+          address: String(r[3] || '').trim()
+        })).filter((m) => m.nopol);
+      }
+
+      // Gabungkan hasil dari Sheet RAW dengan cache lokal pelanggan baru
+      const matches = [...gvizMatches];
+      localMatches.forEach((loc) => {
+        if (!matches.some((m) => m.nopol.toUpperCase() === loc.nopol.toUpperCase())) {
+          matches.unshift(loc);
+        }
+      });
+
+      if (matches.length === 0) {
         hint.textContent = `Nopol "${nopolQuery}" belum ada di Sheet RAW. Silakan ketik Nama Customer, Telp & Alamat secara manual.`;
         autoBox.classList.add('hidden');
         return;
       }
-
-      const matches = rows.map((r) => ({
-        nopol: String(r[0] || '').trim(),
-        customerName: String(r[1] || '').trim(),
-        phone: formatPhoneDisplay(r[2]),
-        address: String(r[3] || '').trim()
-      })).filter((m) => m.nopol);
 
       // Cek apakah ada yang sama persis
       const exact = matches.find((m) => m.nopol.toUpperCase() === nopolQuery.toUpperCase());
@@ -545,7 +568,14 @@ function queryRawSheetByNopol(nopolQuery, autoApplyFirst) {
       hint.textContent = `Ditemukan ${matches.length} kecocokan Nopol di Sheet RAW. Klik salah satu untuk mengisi otomatis.`;
     })
     .catch(() => {
-      hint.textContent = 'Ketik manual Nama Customer, Telp & Alamat jika Nopol baru.';
+      if (localMatches.length > 0) {
+        const exact = localMatches.find((m) => m.nopol.toUpperCase() === nopolQuery.toUpperCase()) || localMatches[0];
+        applyCustomerMatch(exact);
+        hint.textContent = `✓ Data pelanggan "${exact.customerName}" ditemukan otomatis dari database lokal / Sheet RAW.`;
+        autoBox.classList.add('hidden');
+      } else {
+        hint.textContent = 'Ketik manual Nama Customer, Telp & Alamat jika Nopol baru.';
+      }
     });
 }
 
@@ -778,6 +808,31 @@ async function handleOrderSubmit(e) {
   if (STATE.completedJobs && STATE.completedJobs[doneKey]) {
     delete STATE.completedJobs[doneKey];
     localStorage.setItem('SOP_COMPLETED_JOBS', JSON.stringify(STATE.completedJobs));
+  }
+
+  // Simpan data customer ke cache lokal agar langsung bisa auto-complete saat diketik ulang
+  if (orderData.nopol && (orderData.customerName || orderData.phone || orderData.address)) {
+    if (!Array.isArray(STATE.localRawCustomers)) {
+      try {
+        STATE.localRawCustomers = JSON.parse(localStorage.getItem('SOP_LOCAL_RAW_CUSTOMERS') || '[]');
+      } catch (e) {
+        STATE.localRawCustomers = [];
+      }
+    }
+    const cleanNopol = orderData.nopol.toUpperCase();
+    const existingIdx = STATE.localRawCustomers.findIndex((c) => c.nopol && c.nopol.toUpperCase() === cleanNopol);
+    const custObj = {
+      nopol: cleanNopol,
+      customerName: (orderData.customerName || '').toUpperCase(),
+      phone: orderData.phone || '',
+      address: (orderData.address || '').toUpperCase()
+    };
+    if (existingIdx >= 0) {
+      STATE.localRawCustomers[existingIdx] = custObj;
+    } else {
+      STATE.localRawCustomers.push(custObj);
+    }
+    localStorage.setItem('SOP_LOCAL_RAW_CUSTOMERS', JSON.stringify(STATE.localRawCustomers));
   }
 
   try {
