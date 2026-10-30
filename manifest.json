@@ -1,0 +1,17 @@
+{
+  "name": "SOP Monitoring — Agung Toyota Gianyar",
+  "short_name": "SOP Toyota",
+  "description": "Sistem Special Order Part (SOP) & Monitoring SA — PT. Agung Automall Gianyar",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#dc2626",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
