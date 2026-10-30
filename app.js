@@ -2857,15 +2857,57 @@ function printOrderFromMonitoring(grp) {
     }))
   };
 
-  // Cari data Nama Customer, Telp, Alamat dari Sheet RAW terlebih dahulu sebelum membuka dialog print
+  // 1. Cek terlebih dahulu dari cache pelanggan lokal (tersimpan seketika saat diinput di form order)
+  const cleanGrpNopol = String(grp.nopol || '').trim().toUpperCase();
+  const normalizedGrp = cleanGrpNopol.replace(/[^A-Z0-9]/g, '');
+
+  if (!Array.isArray(STATE.localRawCustomers)) {
+    try {
+      STATE.localRawCustomers = JSON.parse(localStorage.getItem('SOP_LOCAL_RAW_CUSTOMERS') || '[]');
+    } catch (e) {
+      STATE.localRawCustomers = [];
+    }
+  }
+
+  const localMatch = STATE.localRawCustomers.find((c) => {
+    if (!c || !c.nopol) return false;
+    const cClean = String(c.nopol).trim().toUpperCase();
+    return cClean === cleanGrpNopol || cClean.replace(/[^A-Z0-9]/g, '') === normalizedGrp;
+  });
+
+  if (localMatch) {
+    if (localMatch.customerName) printData.customerName = localMatch.customerName;
+    if (localMatch.phone) printData.phone = formatPhoneDisplay(localMatch.phone);
+    if (localMatch.address) printData.address = localMatch.address;
+  }
+
+  // Jika data pelanggan sudah lengkap dari cache lokal, langsung cetak tanpa delay jaringan
+  if (printData.customerName && (printData.phone || printData.address)) {
+    const printSection = document.getElementById('printOnlySection');
+    printSection.innerHTML = buildSopLembar1Html(printData, true) + buildSopLembar2Html(printData);
+    window.print();
+    return;
+  }
+
+  // 2. Jika belum lengkap di lokal, cari data Nama Customer, Telp, Alamat dari Sheet RAW
   const formSheetId = window.SOP_CONFIG.SPREADSHEET_FORM_ID;
-  const safeNopol = grp.nopol.replace(/'/g, '');
-  fetchGvizSheet(formSheetId, 'RAW', `SELECT A, B, C, D WHERE upper(A) = '${safeNopol}' LIMIT 1`)
+  const safeNopol = cleanGrpNopol.replace(/'/g, '');
+  const tqQuery = `SELECT A, B, C, D WHERE upper(A) CONTAINS '${safeNopol}' LIMIT 5`;
+
+  fetchGvizSheet(formSheetId, 'RAW', tqQuery)
     .then((rows) => {
       if (rows && rows.length > 0) {
-        printData.customerName = String(rows[0][1] || '').trim();
-        printData.phone = formatPhoneDisplay(rows[0][2]);
-        printData.address = String(rows[0][3] || '').trim();
+        // Cari yang paling cocok
+        const matchedRow = rows.find((r) => {
+          const rNopol = String(r[0] || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+          return rNopol === normalizedGrp;
+        }) || rows[0];
+
+        if (matchedRow) {
+          if (!printData.customerName && matchedRow[1]) printData.customerName = String(matchedRow[1]).trim();
+          if (!printData.phone && matchedRow[2]) printData.phone = formatPhoneDisplay(matchedRow[2]);
+          if (!printData.address && matchedRow[3]) printData.address = String(matchedRow[3]).trim();
+        }
       }
     })
     .catch(() => {})

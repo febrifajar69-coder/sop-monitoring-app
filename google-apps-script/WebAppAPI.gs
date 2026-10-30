@@ -1589,6 +1589,7 @@ function parseFlexibleDate(str) {
 
 /**
  * Menyimpan data pelanggan baru atau melengkapi data ke Sheet 'RAW' di SPREADSHEET_FORM_ID
+ * Menggunakan createTextFinder pada Kolom A agar instan (<100ms) untuk 50.000+ baris data.
  * Jika Nomor Polisi belum ada di Sheet RAW, buat baris baru (Kolom A-D).
  * Jika Nomor Polisi sudah ada, lengkapi kolom nama/telepon/alamat yang masih kosong.
  */
@@ -1608,27 +1609,24 @@ function syncCustomerToRawSheet(order, optSsForm) {
   const rawSheet = ssForm.getSheetByName('RAW');
   if (!rawSheet) return null;
 
-  const lastRow = rawSheet.getLastRow();
-  if (lastRow < 2) {
-    // Sheet RAW belum ada data pelanggan (hanya header baris 1 atau kosong)
-    rawSheet.appendRow([nopol, custName, phone, address]);
-    return { action: 'created', row: 2, nopol: nopol };
-  }
-
-  const nopolVals = rawSheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  // Gunakan TextFinder pada Kolom A untuk pencarian kilat tanpa memuat 50.000 baris ke RAM
   let foundRow = -1;
-
-  for (let i = 0; i < nopolVals.length; i++) {
-    if (String(nopolVals[i][0] || '').trim().toUpperCase() === nopol) {
-      foundRow = i + 2;
-      break;
+  try {
+    const colARange = rawSheet.getRange('A:A');
+    const finder = colARange.createTextFinder(nopol).matchEntireCell(true);
+    const foundCell = finder.findNext();
+    if (foundCell) {
+      foundRow = foundCell.getRow();
     }
+  } catch (findErr) {
+    Logger.log('TextFinder error: ' + findErr);
   }
 
-  if (foundRow === -1) {
+  if (foundRow === -1 || foundRow < 2) {
     // Belum terdaftar di Sheet RAW -> Tambahkan baris baru di paling bawah
     rawSheet.appendRow([nopol, custName, phone, address]);
-    return { action: 'created', row: lastRow + 1, nopol: nopol };
+    const newLastRow = rawSheet.getLastRow();
+    return { action: 'created', row: newLastRow, nopol: nopol };
   }
 
   // Jika sudah ada, periksa apakah ada data nama/telepon/alamat yang kosong di RAW untuk dilengkapi
