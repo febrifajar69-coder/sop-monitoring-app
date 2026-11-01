@@ -810,6 +810,26 @@ async function handleOrderSubmit(e) {
     localStorage.setItem('SOP_COMPLETED_JOBS', JSON.stringify(STATE.completedJobs));
   }
 
+  // Bersihkan cache edit lokal lama untuk Nopol ini agar tidak mengkontaminasi order baru
+  const cleanNopolUpper = String(orderData.nopol || '').trim().toUpperCase();
+  if (STATE.localFollowUpEdits && typeof STATE.localFollowUpEdits === 'object') {
+    let editsChanged = false;
+    Object.keys(STATE.localFollowUpEdits).forEach((key) => {
+      if (
+        key.includes(cleanNopolUpper) ||
+        key.startsWith(`${targetSheet}-${cleanNopolUpper}`) ||
+        key.startsWith(`${targetSheet}__${cleanNopolUpper}`) ||
+        key.startsWith(`${targetSheet}::${cleanNopolUpper}`)
+      ) {
+        delete STATE.localFollowUpEdits[key];
+        editsChanged = true;
+      }
+    });
+    if (editsChanged) {
+      localStorage.setItem('SOP_LOCAL_FU_EDITS', JSON.stringify(STATE.localFollowUpEdits));
+    }
+  }
+
   // Simpan data customer ke cache lokal agar langsung bisa auto-complete saat diketik ulang
   if (orderData.nopol && (orderData.customerName || orderData.phone || orderData.address)) {
     if (!Array.isArray(STATE.localRawCustomers)) {
@@ -1461,10 +1481,19 @@ function parseMonitoringSheetRows(sheetName, rows) {
       continue;
     }
 
-    // Jika baris kosong pemisah grup, reset lastValidNopol
+    // Jika baris kosong pemisah grup, reset lastValidNopol, lastOrderDate, lastOrderNo
     if (!colA && !colD && !colE) {
       lastValidNopol = '';
+      lastOrderDate = '';
+      lastOrderNo = '';
       continue;
+    }
+
+    // Jika ganti Nopol baru, reset lastOrderDate dan lastOrderNo
+    if (colA && colA !== lastValidNopol) {
+      lastValidNopol = colA;
+      lastOrderDate = '';
+      lastOrderNo = '';
     }
 
     const nopol = colA || lastValidNopol;
@@ -1476,10 +1505,21 @@ function parseMonitoringSheetRows(sheetName, rows) {
       continue;
     }
 
-    const orderDate = String(r[1] || lastOrderDate || '').trim();
-    const orderNo = String(r[2] || lastOrderNo || '').trim();
-    if (r[1]) lastOrderDate = orderDate;
-    if (r[2]) lastOrderNo = orderNo;
+    let orderDate = '';
+    let orderNo = '';
+    if (colA) {
+      // Baris pertama nopol: ambil langsung dari sel baris tersebut (jangan warisi dari nopol sebelumnya)
+      orderDate = String(r[1] || '').trim();
+      orderNo = String(r[2] || '').trim();
+      lastOrderDate = orderDate;
+      lastOrderNo = orderNo;
+    } else {
+      // Baris part tambahan dalam grup nopol yang sama
+      orderDate = String(r[1] || lastOrderDate || '').trim();
+      orderNo = String(r[2] || lastOrderNo || '').trim();
+      if (r[1]) lastOrderDate = orderDate;
+      if (r[2]) lastOrderNo = orderNo;
+    }
 
     const qty = parseFloat(r[5]) || 1;
     const price = parseFloat(r[6]) || 0;
@@ -1493,7 +1533,21 @@ function parseMonitoringSheetRows(sheetName, rows) {
     const rowNumber = i + 8; // Perkiraan nomor baris di sheet
     const itemId = `${sheetName}-R${rowNumber}-${nopol}-${colD}`;
     const localEdit = STATE.localFollowUpEdits[itemId] || STATE.localFollowUpEdits[`${sheetName}-${nopol}`];
-    const localItemMeta = STATE.localFollowUpEdits[`ITEM-${sheetName}-R${rowNumber}`];
+    const rawLocalItem = STATE.localFollowUpEdits[`ITEM-${sheetName}-R${rowNumber}`];
+    const localItemMeta = (rawLocalItem && (!rawLocalItem.nopol || rawLocalItem.nopol.toUpperCase() === nopol.toUpperCase()))
+      ? rawLocalItem
+      : null;
+
+    let ataVal = localItemMeta && localItemMeta.ata !== undefined ? localItemMeta.ata : String(r[9] || '').trim();
+
+    // Validasi Integritas ATA: Part tidak mungkin tiba mendahului tanggal pemesanannya!
+    if (ataVal && orderDate) {
+      const pOrder = parseFlexibleDateToObj(orderDate);
+      const pAta = parseFlexibleDateToObj(ataVal, pOrder ? pOrder.getFullYear() : undefined);
+      if (pOrder && pAta && pAta.getTime() < pOrder.getTime()) {
+        ataVal = ''; // Kontaminasi peninggalan baris lama diabaikan
+      }
+    }
 
     items.push({
       id: itemId,
@@ -1508,7 +1562,7 @@ function parseMonitoringSheetRows(sheetName, rows) {
       price: price,
       eta: String(r[7] || '').trim(),
       total: total,
-      ata: localItemMeta && localItemMeta.ata !== undefined ? localItemMeta.ata : String(r[9] || '').trim(),
+      ata: ataVal,
       note: localEdit && localEdit.note !== undefined ? localEdit.note : String(r[10] || '').trim(),
       dp: localEdit && localEdit.dp ? localEdit.dp : String(r[11] || 'NOT FIX').trim().toUpperCase(),
       newEta: localItemMeta && localItemMeta.newEta !== undefined ? localItemMeta.newEta : String(r[12] || '').trim(),
@@ -1516,7 +1570,7 @@ function parseMonitoringSheetRows(sheetName, rows) {
       followUp1: localEdit && localEdit.fu1 !== undefined ? localEdit.fu1 : String(r[13] || '').trim(),
       followUp2: localEdit && localEdit.fu2 !== undefined ? localEdit.fu2 : String(r[14] || '').trim(),
       followUp3: localEdit && localEdit.fu3 !== undefined ? localEdit.fu3 : String(r[15] || '').trim(),
-      status: localEdit && localEdit.status ? localEdit.status : String(r[16] || (r[9] ? 'ARRIVAL' : 'NOT FIX')).trim().toUpperCase(),
+      status: localEdit && localEdit.status ? localEdit.status : String(r[16] || (ataVal ? 'ARRIVAL' : 'NOT FIX')).trim().toUpperCase(),
       saPic: (localEdit && localEdit.saPic) ? localEdit.saPic : saPic
     });
   }
@@ -1723,12 +1777,24 @@ function groupMonitoringItemsByOrder(items) {
 
     grp.items.forEach((it) => {
       const d = parseFlexibleDateToObj(it.ata, fallbackYear);
+      // Validasi Integritas: ATA tidak boleh lebih awal dari Tanggal Order
+      if (d && orderDateObj && d.getTime() < orderDateObj.getTime()) {
+        it.ata = '';
+        return;
+      }
       if (d) {
         arrivedCount++;
         itemAtaDates.push(d);
         it.status = 'ARRIVAL';
       }
     });
+
+    if (arrivedCount === 0) {
+      grp.ata = '';
+      if (grp.status === 'ARRIVAL') {
+        grp.status = (grp.dp === 'NOT FIX' || !grp.dp) ? 'NOT FIX' : 'IN PROCESS';
+      }
+    }
 
     grp.arrivedItemCount = arrivedCount;
     grp.allItemsArrived = grp.items.length > 0 && arrivedCount === grp.items.length;
@@ -2435,6 +2501,7 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
     });
 
     STATE.localFollowUpEdits[`ITEM-${sheetName}-R${rNum}`] = {
+      nopol: nopol,
       newEta: newEtaVal ? formatDateSlash(newEtaVal) : '',
       ata: formattedAta,
       status: itemStatus
@@ -2445,6 +2512,10 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
   if (hasAnyAta && statusVal !== 'ARRIVAL') {
     statusVal = 'ARRIVAL';
     if (statusEl) statusEl.value = 'ARRIVAL';
+  } else if (!hasAnyAta && statusVal === 'ARRIVAL') {
+    // Jika ATA dikosongkan/dibersihkan dan sebelumnya ARRIVAL, kembalikan statusnya
+    statusVal = (dpVal === 'NOT FIX' || !dpVal) ? 'NOT FIX' : 'IN PROCESS';
+    if (statusEl) statusEl.value = statusVal;
   }
 
   const grp = STATE.currentRenderedGroups[domPrefix];

@@ -804,17 +804,37 @@ function getMonitoringData(saFilter) {
 
       if (!rawNopol && !partNo && !partName) {
         lastValidNopol = '';
+        lastOrderDate = '';
+        lastOrderNo = '';
         continue;
+      }
+
+      // Jika berpindah ke Nopol baru, pastikan lastOrderDate & lastOrderNo direset total
+      if (rawNopol && rawNopol !== lastValidNopol) {
+        lastValidNopol = rawNopol;
+        lastOrderDate = '';
+        lastOrderNo = '';
       }
 
       const nopol = rawNopol || lastValidNopol;
       if (!nopol) continue;
       lastValidNopol = nopol;
 
-      const orderDate = String(d[1] || lastOrderDate || '').trim();
-      const orderNo = String(d[2] || lastOrderNo || '').trim();
-      if (d[1]) lastOrderDate = orderDate;
-      if (d[2]) lastOrderNo = orderNo;
+      let orderDate = '';
+      let orderNo = '';
+      if (rawNopol) {
+        // Baris utama nopol: ambil langsung dari sel baris tersebut (jangan warisi dari nopol sebelumnya)
+        orderDate = String(d[1] || '').trim();
+        orderNo = String(d[2] || '').trim();
+        lastOrderDate = orderDate;
+        lastOrderNo = orderNo;
+      } else {
+        // Baris part tambahan dalam satu grup nopol yang sama
+        orderDate = String(d[1] || lastOrderDate || '').trim();
+        orderNo = String(d[2] || lastOrderNo || '').trim();
+        if (d[1]) lastOrderDate = orderDate;
+        if (d[2]) lastOrderNo = orderNo;
+      }
 
       const qty = parseFloat(r[5]) || 1;
       const price = parseFloat(r[6]) || 0;
@@ -828,8 +848,30 @@ function getMonitoringData(saFilter) {
       const meta1 = parseFuNoteMeta(nRow[0]);
       const meta2 = parseFuNoteMeta(nRow[1]);
 
-      const rawAta = String(d[9] || '').trim();
+      let rawAta = String(d[9] || '').trim();
       let rowStatus = String(d[16] || '').trim().toUpperCase();
+
+      // Validasi Integritas ATA: Part tidak mungkin tiba mendahului tanggal pemesanannya!
+      if (rawAta && orderDate) {
+        let oDateObj = (r[1] instanceof Date && !isNaN(r[1].getTime())) ? new Date(r[1].getTime()) : parseFlexibleDate(orderDate);
+        let aDateObj = (r[9] instanceof Date && !isNaN(r[9].getTime())) ? new Date(r[9].getTime()) : parseFlexibleDate(rawAta);
+        if (oDateObj && aDateObj) {
+          oDateObj.setHours(0, 0, 0, 0);
+          aDateObj.setHours(0, 0, 0, 0);
+          if (aDateObj.getTime() < oDateObj.getTime()) {
+            // Kontaminasi data baris lama terdeteksi! Bersihkan ATA & pulihkan status order
+            rawAta = '';
+            d[9] = '';
+            try {
+              sheet.getRange(rowNum, 10).clearContent();
+              if (rowStatus === 'ARRIVAL') {
+                rowStatus = 'IN PROCESS';
+                sheet.getRange(rowNum, 17).setValue('IN PROCESS');
+              }
+            } catch (eFixAta) {}
+          }
+        }
+      }
 
       // Aturan Otomatis: jika part sudah ada ATA, status ordernya otomatis jadi 'ARRIVAL'
       if (rawAta) {
@@ -921,6 +963,14 @@ function submitOrderToMonitoring(order) {
     startWriteRow = (prevNopol === curNopol) ? (lastDataRow + 1) : (lastDataRow + 2);
   }
 
+  // Jika ada jarak 1 baris kosong pemisah (lastDataRow + 1), bersihkan seluruh sel pada baris pemisah tersebut
+  if (startWriteRow === lastDataRow + 2 && (lastDataRow + 1) >= 9) {
+    try {
+      sheet.getRange(lastDataRow + 1, 1, 1, 18).clearContent();
+      sheet.getRange(lastDataRow + 1, 14, 1, 3).clearNote();
+    } catch (eSep) {}
+  }
+
   const orderDateVal = order.orderDate ? new Date(order.orderDate) : new Date();
   const etaVal = order.eta ? new Date(order.eta) : '';
 
@@ -952,10 +1002,18 @@ function submitOrderToMonitoring(order) {
       sheet.getRange(targetRow, 9).setFormula('=F' + targetRow + '*G' + targetRow);
     }
 
+    // Bersihkan Kolom 10 (ATA) agar tidak ada data residu/lama yang terbawa
+    sheet.getRange(targetRow, 10).clearContent();
+
     sheet.getRange(targetRow, 11, 1, 2).setValues([[
       String(order.note || '').trim().toUpperCase(),
       String(order.dpStatus || 'NOT FIX').trim().toUpperCase()
     ]]);
+
+    // Bersihkan Kolom 13 (NEW ETA), 14-16 (FU1, FU2, FU3) & Note FU
+    sheet.getRange(targetRow, 13).clearContent();
+    sheet.getRange(targetRow, 14, 1, 3).clearContent();
+    sheet.getRange(targetRow, 14, 1, 3).clearNote();
 
     sheet.getRange(targetRow, 17).setValue(orderStatus);
 
