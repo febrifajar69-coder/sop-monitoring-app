@@ -5372,6 +5372,23 @@ async function loadAndRenderJobDoneReport(forceRefresh) {
     let lastOD = '';
     let lastSA = '';
     let lastJD = '';
+    let currentSectionMonth = null;
+    let currentSectionYear = new Date().getFullYear();
+
+    const MONTH_HEADER_LOOKUP = {
+      'JANUARI': 0, 'JANUARY': 0, 'JAN': 0,
+      'FEBRUARI': 1, 'FEBRUARY': 1, 'FEB': 1,
+      'MARET': 2, 'MARCH': 2, 'MAR': 2,
+      'APRIL': 3, 'APR': 3,
+      'MEI': 4, 'MAY': 4,
+      'JUNI': 5, 'JUNE': 5, 'JUN': 5,
+      'JULI': 6, 'JULY': 6, 'JUL': 6,
+      'AGUSTUS': 7, 'AUGUST': 7, 'AGU': 7, 'AGT': 7, 'AUG': 7,
+      'SEPTEMBER': 8, 'SEP': 8, 'SEPT': 8,
+      'OKTOBER': 9, 'OCTOBER': 9, 'OKT': 9, 'OCT': 9,
+      'NOVEMBER': 10, 'NOV': 10,
+      'DESEMBER': 11, 'DECEMBER': 11, 'DES': 11, 'DEC': 11
+    };
 
     for (let i = 0; i < rawRows.length; i++) {
       const r = rawRows[i];
@@ -5379,11 +5396,55 @@ async function loadAndRenderJobDoneReport(forceRefresh) {
       const colD = String(r[3] || '').trim();
       const colE = String(r[4] || '').trim();
 
-      if (colA === 'NOPOL' || colD === 'PART NO' || colE === 'PART NAME') continue;
-
+      // Lewati baris kosong pemisah
       if (!colA && !colD && !colE) {
         lastN = ''; lastOD = ''; lastSA = ''; lastJD = '';
         continue;
+      }
+
+      // Deteksi Banner Judul Bulan (contoh: "NOVEMBER", "OKTOBER", dll)
+      const cleanAlpha = colA.replace(/[^A-Z]/g, '');
+      if (MONTH_HEADER_LOOKUP[cleanAlpha] !== undefined) {
+        currentSectionMonth = MONTH_HEADER_LOOKUP[cleanAlpha];
+        const yrMatch = colA.match(/\b(20\d{2})\b/);
+        if (yrMatch) {
+          currentSectionYear = parseInt(yrMatch[1], 10);
+        }
+        lastN = ''; lastOD = ''; lastSA = ''; lastJD = '';
+        continue; // Lewati banner judul bulan! JANGAN jadikan unit
+      }
+
+      // Lewati Baris Header Kolom Tabel (NOPOL, ORDER DATE, PART NO, KETERANGAN, dll)
+      const colDUp = colD.toUpperCase();
+      const colEUp = colE.toUpperCase();
+      if (
+        colA === 'NOPOL' ||
+        colA === 'NO POL' ||
+        colA === 'NO. POL' ||
+        colA === 'NO POLISI' ||
+        colA === 'NO. POLISI' ||
+        colA.startsWith('MONITORING') ||
+        colA.startsWith('KETERANGAN') ||
+        colDUp === 'PART NO' ||
+        colEUp === 'PART NAME' ||
+        colDUp === 'NOTE' ||
+        colEUp === 'DP' ||
+        colDUp === 'KETERANGAN'
+      ) {
+        lastN = ''; lastOD = ''; lastSA = ''; lastJD = '';
+        continue; // Lewati baris header kolom
+      }
+
+      // Validasi Nomor Polisi: pelat nomor kendaraan WAJIB punya angka (misal DK-34-L, DK-1733-KG)
+      if (colA) {
+        if (!/\d/.test(colA)) {
+          lastN = '';
+          continue;
+        }
+      } else {
+        if (!lastN || (!colD && !colE)) {
+          continue;
+        }
       }
 
       if (colA && colA !== lastN) {
@@ -5405,7 +5466,19 @@ async function loadAndRenderJobDoneReport(forceRefresh) {
       let saPic = String(r[17] || lastSA || '').trim().toUpperCase();
       if (!saPic || saPic === '#REF!') saPic = 'OTHER';
 
-      const jobDoneDate = String(r[18] || lastJD || ata || orderDate || '').trim();
+      let jobDoneDate = String(r[18] || lastJD || '').trim();
+      if (!jobDoneDate) {
+        if (currentSectionMonth !== null) {
+          const yr = currentSectionYear || new Date().getFullYear();
+          const monStr = SHORT_MONTHS_ID[currentSectionMonth] || 'Nov';
+          const fallbackRaw = ata || orderDate || '';
+          const dayMatch = fallbackRaw.match(/^(\d{1,2})/);
+          const day = dayMatch ? dayMatch[1].padStart(2, '0') : '01';
+          jobDoneDate = `${day} ${monStr} ${yr}`;
+        } else {
+          jobDoneDate = ata || orderDate || '';
+        }
+      }
 
       items.push({
         id: 'JD-' + i,
@@ -5458,10 +5531,15 @@ function renderJobDoneReport() {
   const groupMap = new Map();
 
   (STATE.jobDoneItemsCache || []).forEach((it) => {
-    const key = `${it.nopol}__${it.orderDate || ''}`;
+    if (!it || !it.nopol) return;
+    const cleanN = String(it.nopol).trim().toUpperCase();
+    // Validasi pelat nopol: wajib punya angka, bukan nama bulan/header
+    if (!/\d/.test(cleanN) || cleanN === 'NOVEMBER' || cleanN === 'NOPOL') return;
+
+    const key = `${cleanN}__${it.orderDate || ''}`;
     if (!groupMap.has(key)) {
       groupMap.set(key, {
-        nopol: it.nopol,
+        nopol: cleanN,
         orderDate: it.orderDate,
         orderNo: it.orderNo,
         saPic: it.saPic,
@@ -5492,6 +5570,8 @@ function renderJobDoneReport() {
     Object.values(STATE.completedJobs).forEach((cj) => {
       if (!cj || !cj.nopol) return;
       const cleanN = String(cj.nopol).trim().toUpperCase();
+      if (!/\d/.test(cleanN) || cleanN === 'NOVEMBER' || cleanN === 'NOPOL') return;
+
       const key = `${cleanN}__${cj.orderDate || ''}`;
       if (!groupMap.has(key) && Array.isArray(cj.items) && cj.items.length > 0) {
         let tot = 0;
@@ -5566,6 +5646,8 @@ function renderJobDoneReport() {
       if (doneDateObj.getMonth() !== month || doneDateObj.getFullYear() !== year) {
         return;
       }
+    } else {
+      return; // Jangan tampilkan baris yang tidak memiliki tanggal valid
     }
 
     // Filter SA

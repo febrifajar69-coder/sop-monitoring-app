@@ -1594,6 +1594,25 @@ function getJobDoneData() {
   let lastOrderDate = '';
   let lastSaPic = '';
   let lastJobDoneDate = '';
+  let currentSectionMonth = null;
+  let currentSectionYear = new Date().getFullYear();
+
+  const MONTH_HEADER_LOOKUP = {
+    'JANUARI': 0, 'JANUARY': 0, 'JAN': 0,
+    'FEBRUARI': 1, 'FEBRUARY': 1, 'FEB': 1,
+    'MARET': 2, 'MARCH': 2, 'MAR': 2,
+    'APRIL': 3, 'APR': 3,
+    'MEI': 4, 'MAY': 4,
+    'JUNI': 5, 'JUNE': 5, 'JUN': 5,
+    'JULI': 6, 'JULY': 6, 'JUL': 6,
+    'AGUSTUS': 7, 'AUGUST': 7, 'AGU': 7, 'AGT': 7, 'AUG': 7,
+    'SEPTEMBER': 8, 'SEP': 8, 'SEPT': 8,
+    'OKTOBER': 9, 'OCTOBER': 9, 'OKT': 9, 'OCT': 9,
+    'NOVEMBER': 10, 'NOV': 10,
+    'DESEMBER': 11, 'DECEMBER': 11, 'DES': 11, 'DEC': 11
+  };
+
+  const SHORT_MONTHS_LIST = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
   for (let i = 0; i < values.length; i++) {
     const rowNum = i + 5;
@@ -1604,12 +1623,67 @@ function getJobDoneData() {
     const partNo = String(d[3] || '').trim();
     const partName = String(d[4] || '').trim();
 
+    // 1. Lewati baris kosong pemisah
     if (!rawNopol && !partNo && !partName) {
       lastNopol = '';
       lastOrderDate = '';
       lastSaPic = '';
       lastJobDoneDate = '';
       continue;
+    }
+
+    // 2. Deteksi Banner Judul Bulan (contoh: "NOVEMBER", "OKTOBER", dll)
+    const cleanAlpha = rawNopol.replace(/[^A-Z]/g, '');
+    if (MONTH_HEADER_LOOKUP[cleanAlpha] !== undefined) {
+      currentSectionMonth = MONTH_HEADER_LOOKUP[cleanAlpha];
+      const yrMatch = rawNopol.match(/\b(20\d{2})\b/);
+      if (yrMatch) {
+        currentSectionYear = parseInt(yrMatch[1], 10);
+      }
+      lastNopol = '';
+      lastOrderDate = '';
+      lastSaPic = '';
+      lastJobDoneDate = '';
+      continue; // Lewati banner judul bulan! JANGAN jadikan unit
+    }
+
+    // 3. Lewati Baris Header Tabel (NOPOL, ORDER DATE, PART NO, KETERANGAN, dll)
+    const partNoUp = partNo.toUpperCase();
+    const partNameUp = partName.toUpperCase();
+    if (
+      rawNopol === 'NOPOL' ||
+      rawNopol === 'NO POL' ||
+      rawNopol === 'NO. POL' ||
+      rawNopol === 'NO POLISI' ||
+      rawNopol === 'NO. POLISI' ||
+      rawNopol.startsWith('MONITORING') ||
+      rawNopol.startsWith('KETERANGAN') ||
+      partNoUp === 'PART NO' ||
+      partNameUp === 'PART NAME' ||
+      partNoUp === 'NOTE' ||
+      partNameUp === 'DP' ||
+      partNoUp === 'KETERANGAN'
+    ) {
+      lastNopol = '';
+      lastOrderDate = '';
+      lastSaPic = '';
+      lastJobDoneDate = '';
+      continue; // Lewati baris header kolom!
+    }
+
+    // 4. Validasi Keaslian Nomor Polisi:
+    // Pelat nomor polisi kendaraan di Indonesia WAJIB mengandung setidaknya 1 angka (misal DK-34-L, DK-1733-KG)
+    if (rawNopol) {
+      if (!/\d/.test(rawNopol)) {
+        // Teks tanpa angka sama sekali bukan pelat nomor!
+        lastNopol = '';
+        continue;
+      }
+    } else {
+      // Jika baris part tambahan, pastikan ada lastNopol yang aktif dan memiliki item part
+      if (!lastNopol || (!partNo && !partName)) {
+        continue;
+      }
     }
 
     if (rawNopol && rawNopol !== lastNopol) {
@@ -1631,7 +1705,20 @@ function getJobDoneData() {
     let saPic = String(d[17] || lastSaPic || '').trim().toUpperCase();
     if (!saPic || saPic === '#REF!') saPic = 'OTHER';
 
-    const jobDoneDate = String(d[18] || lastJobDoneDate || ata || orderDate || '').trim();
+    let jobDoneDate = String(d[18] || lastJobDoneDate || '').trim();
+    if (!jobDoneDate) {
+      // Jika kolom S kosong (data arsip lama), gunakan bulan dari banner section (misal NOVEMBER)
+      if (currentSectionMonth !== null) {
+        const yr = currentSectionYear || new Date().getFullYear();
+        const monStr = SHORT_MONTHS_LIST[currentSectionMonth] || 'Nov';
+        const fallbackRaw = String(d[9] || d[1] || '').trim();
+        const dayMatch = fallbackRaw.match(/^(\d{1,2})/);
+        const day = dayMatch ? dayMatch[1].padStart(2, '0') : '01';
+        jobDoneDate = `${day} ${monStr} ${yr}`;
+      } else {
+        jobDoneDate = String(d[9] || d[1] || '').trim();
+      }
+    }
 
     items.push({
       id: 'JD-R' + rowNum,
