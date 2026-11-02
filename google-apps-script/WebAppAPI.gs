@@ -38,6 +38,10 @@ function doGet(e) {
       return jsonResponse(getMonitoringData(saFilter));
     }
 
+    if (action === 'getJobDone') {
+      return jsonResponse(getJobDoneData());
+    }
+
     if (action === 'getEmailSettings') {
       return jsonResponse({
         status: 'ok',
@@ -1415,8 +1419,11 @@ function moveOrderToJobDone(payload) {
     }
   }
 
-  // Kumpulkan baris data yang akan ditulis ke Sheet 'JOB DONE' (Kolom A s/d R = 18 kolom)
+  // Kumpulkan baris data yang akan ditulis ke Sheet 'JOB DONE' (Kolom A s/d S = 19 kolom)
   const rowsToWriteToJobDone = [];
+  const now = new Date();
+  const jobDoneTimestamp = Utilities.formatDate(now, Session.getScriptTimeZone() || 'Asia/Makassar', 'dd/MM/yyyy HH:mm');
+
   if (matchedRows.length > 0) {
     let carryOrderDate = '';
     let carryOrderNo = '';
@@ -1454,7 +1461,8 @@ function moveOrderToJobDone(payload) {
         rDisp[14] || '',
         rDisp[15] || '',
         rDisp[16] || 'ARRIVAL',
-        saVal
+        saVal,
+        jobDoneTimestamp
       ]);
     }
   } else if (payload.orderData && Array.isArray(payload.orderData.items) && payload.orderData.items.length > 0) {
@@ -1483,7 +1491,8 @@ function moveOrderToJobDone(payload) {
         od.followUp2 || '',
         od.followUp3 || '',
         od.status || 'ARRIVAL',
-        saVal
+        saVal,
+        jobDoneTimestamp
       ]);
     }
   } else {
@@ -1495,15 +1504,24 @@ function moveOrderToJobDone(payload) {
   const startJobDoneRow = (lastJobDoneRow >= 5) ? (lastJobDoneRow + 2) : 5;
   const jobDoneInsertedRows = [];
 
+  // Pastikan Header Kolom S (19) terpasang di Baris 4
+  try {
+    const headS = String(jobDoneSheet.getRange(4, 19).getDisplayValue() || '').trim();
+    if (!headS) {
+      jobDoneSheet.getRange(4, 19).setValue('TANGGAL JOB DONE');
+    }
+  } catch (eH) {}
+
   for (let i = 0; i < rowsToWriteToJobDone.length; i++) {
     const destRow = startJobDoneRow + i;
     const rowArr = rowsToWriteToJobDone[i];
-    jobDoneSheet.getRange(destRow, 1, 1, 18).setValues([rowArr]);
+    jobDoneSheet.getRange(destRow, 1, 1, 19).setValues([rowArr]);
     jobDoneSheet.getRange(destRow, 9).setFormula('=F' + destRow + '*G' + destRow);
     jobDoneSheet.getRange(destRow, 2).setNumberFormat('dd/MM/yyyy');
     if (rowArr[7]) jobDoneSheet.getRange(destRow, 8).setNumberFormat('dd/MM/yyyy');
     if (rowArr[9]) jobDoneSheet.getRange(destRow, 10).setNumberFormat('dd/MM/yyyy');
     if (rowArr[12]) jobDoneSheet.getRange(destRow, 13).setNumberFormat('dd/MM/yyyy');
+    jobDoneSheet.getRange(destRow, 19).setNumberFormat('@');
     jobDoneInsertedRows.push(destRow);
   }
 
@@ -1549,6 +1567,96 @@ function moveOrderToJobDone(payload) {
     sheetName: sheetName,
     nopol: targetNopol,
     jobDoneRows: jobDoneInsertedRows
+  };
+}
+
+/**
+ * Mengambil seluruh data rekapan dari Sheet 'JOB DONE' (termasuk Tanggal Job Done di Kolom S)
+ */
+function getJobDoneData() {
+  const ssMon = SpreadsheetApp.openById(SPREADSHEET_MONITORING_ID);
+  const sheet = ssMon.getSheetByName('JOB DONE');
+  if (!sheet) {
+    return { status: 'error', message: 'Sheet JOB DONE tidak ditemukan.' };
+  }
+
+  const lastRow = getTrueLastRowJobDone(sheet);
+  if (lastRow < 5) {
+    return { status: 'ok', items: [] };
+  }
+
+  const numRows = lastRow - 4;
+  const values = sheet.getRange(5, 1, numRows, 19).getValues();
+  const displayValues = sheet.getRange(5, 1, numRows, 19).getDisplayValues();
+
+  const items = [];
+  let lastNopol = '';
+  let lastOrderDate = '';
+  let lastSaPic = '';
+  let lastJobDoneDate = '';
+
+  for (let i = 0; i < values.length; i++) {
+    const rowNum = i + 5;
+    const d = displayValues[i];
+    const r = values[i];
+
+    const rawNopol = String(d[0] || '').trim().toUpperCase();
+    const partNo = String(d[3] || '').trim();
+    const partName = String(d[4] || '').trim();
+
+    if (!rawNopol && !partNo && !partName) {
+      lastNopol = '';
+      lastOrderDate = '';
+      lastSaPic = '';
+      lastJobDoneDate = '';
+      continue;
+    }
+
+    if (rawNopol && rawNopol !== lastNopol) {
+      lastNopol = rawNopol;
+      lastOrderDate = String(d[1] || '').trim();
+      lastSaPic = String(d[17] || '').trim();
+      lastJobDoneDate = String(d[18] || '').trim();
+    }
+
+    const nopol = rawNopol || lastNopol;
+    if (!nopol) continue;
+
+    const orderDate = String(d[1] || lastOrderDate || '').trim();
+    const orderNo = String(d[2] || '').trim();
+    const qty = parseFloat(r[5]) || 1;
+    const price = parseFloat(r[6]) || 0;
+    const total = parseFloat(r[8]) || (qty * price);
+    const ata = String(d[9] || '').trim();
+    let saPic = String(d[17] || lastSaPic || '').trim().toUpperCase();
+    if (!saPic || saPic === '#REF!') saPic = 'OTHER';
+
+    const jobDoneDate = String(d[18] || lastJobDoneDate || ata || orderDate || '').trim();
+
+    items.push({
+      id: 'JD-R' + rowNum,
+      rowNumber: rowNum,
+      nopol: nopol,
+      orderDate: orderDate,
+      orderNo: orderNo,
+      partNo: partNo || '-',
+      partName: partName || '-',
+      qty: qty,
+      price: price,
+      eta: d[7] || '',
+      total: total,
+      ata: ata,
+      note: d[10] || '',
+      dp: d[11] || '',
+      saPic: saPic,
+      jobDoneDate: jobDoneDate
+    });
+  }
+
+  return {
+    status: 'ok',
+    totalRows: items.length,
+    items: items
   };
 }
 

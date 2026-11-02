@@ -176,6 +176,16 @@
         <span class="drawer-menu-plus">+</span>
       </button>
 
+      <!-- Menu Rekapan Job Done (Bulan Berjalan) -->
+      <button type="button" id="tabBtnJobDoneReport" class="drawer-menu-item" onclick="selectMenuFromDrawer('jobdone_report')">
+        <span class="drawer-menu-icon">✅</span>
+        <span class="drawer-menu-text">
+          <span class="drawer-menu-title">Rekapan Job Done</span>
+          <span class="drawer-menu-desc">Rekap Unit Selesai, Omset &amp; Tanggal Selesai</span>
+        </span>
+        <span class="drawer-menu-plus">+</span>
+      </button>
+
       <button type="button" id="tabBtnEmail" class="drawer-menu-item" onclick="selectMenuFromDrawer('email')">
         <span class="drawer-menu-icon">📧</span>
         <span class="drawer-menu-text">
@@ -758,6 +768,169 @@
     </section>
 
     <!-- ======================================================================
+         SECTION 2C: REKAPAN JOB DONE (BULAN BERJALAN & HISTORI SELESAI)
+         ====================================================================== -->
+    <section id="sectionJobDoneReport" class="no-print hidden">
+      <div class="card" style="margin-bottom:1.25rem;">
+        <div class="card-header" style="flex-wrap:wrap;gap:1rem;">
+          <div>
+            <div class="card-title" style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+              <span>✅ Rekapan Job Done (Unit &amp; Omset Selesai)</span>
+              <span style="font-size:0.75rem;background:#059669;color:#fff;padding:2px 10px;border-radius:12px;font-weight:800;letter-spacing:0.03em;">
+                JOB DONE
+              </span>
+            </div>
+            <div class="card-subtitle">
+              Rekapitulasi seluruh unit yang telah selesai proses part &amp; servis di bengkel.
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <!-- Filter SA -->
+            <select id="jobDoneSaFilter" class="select select-sm" style="width:auto;font-weight:700;" onchange="handleJobDoneFilterChange()">
+              <option value="ALL">Semua SA</option>
+              <option value="AJS">SA: AJS</option>
+              <option value="AYU">SA: AYU</option>
+              <option value="FIK">SA: FIK</option>
+              <option value="WBN">SA: WBN</option>
+              <option value="OTHER">SA: OTHERS</option>
+            </select>
+
+            <!-- Navigasi Cepat Bulan -->
+            <button type="button" class="btn btn-outline btn-sm" onclick="changeJobDoneReportMonth(-1)" title="Bulan Sebelumnya">
+              ‹
+            </button>
+            <select id="jobDoneMonthSelect" class="select select-sm" style="width:auto;font-weight:700;" onchange="handleJobDoneFilterChange()">
+              <option value="0">Januari</option>
+              <option value="1">Februari</option>
+              <option value="2">Maret</option>
+              <option value="3">April</option>
+              <option value="4">Mei</option>
+              <option value="5">Juni</option>
+              <option value="6">Juli</option>
+              <option value="7">Agustus</option>
+              <option value="8">September</option>
+              <option value="9">Oktober</option>
+              <option value="10">November</option>
+              <option value="11">Desember</option>
+            </select>
+            <select id="jobDoneYearSelect" class="select select-sm" style="width:auto;font-weight:700;" onchange="handleJobDoneFilterChange()">
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+            </select>
+            <button type="button" class="btn btn-outline btn-sm" onclick="changeJobDoneReportMonth(1)" title="Bulan Berikutnya">
+              ›
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="resetJobDoneReportToCurrentMonth()" title="Kembali ke bulan saat ini">
+              Bulan Ini
+            </button>
+
+            <!-- Aksi Salin & Cetak -->
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyJobDoneTableToClipboard()" title="Salin Tabel ke Clipboard untuk di-paste langsung ke Excel / Spreadsheet">
+              📋 Salin ke Excel
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="printJobDoneReport()" title="Cetak Rekapan Job Done">
+              🖨️ Cetak
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="loadAndRenderJobDoneReport(true)" title="Perbarui data dari Google Sheets">
+              🔄 Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KARTU RINGKASAN KPI BULAN BERJALAN -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.25rem;">
+        <div style="background:linear-gradient(135deg,#064e3b,#047857);color:#ffffff;border-radius:12px;padding:1.15rem 1.35rem;box-shadow:0 4px 12px rgba(6,78,59,0.22);display:flex;align-items:center;gap:1.1rem;">
+          <div style="font-size:2.3rem;background:rgba(255,255,255,0.18);border-radius:12px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            🚗
+          </div>
+          <div>
+            <div style="font-size:0.75rem;letter-spacing:0.06em;text-transform:uppercase;color:#a7f3d0;font-weight:700;">TOTAL NOPOL SELESAI</div>
+            <div id="jobDoneTotalUnitsCard" style="font-size:1.85rem;font-weight:900;line-height:1.2;margin-top:2px;">0 Unit</div>
+            <div id="jobDoneMonthLabelCard1" style="font-size:0.75rem;color:#d1fae5;margin-top:2px;">Bulan Berjalan</div>
+          </div>
+        </div>
+
+        <div style="background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#ffffff;border-radius:12px;padding:1.15rem 1.35rem;box-shadow:0 4px 12px rgba(30,58,138,0.22);display:flex;align-items:center;gap:1.1rem;">
+          <div style="font-size:2.3rem;background:rgba(255,255,255,0.18);border-radius:12px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            💰
+          </div>
+          <div>
+            <div style="font-size:0.75rem;letter-spacing:0.06em;text-transform:uppercase;color:#bfdbfe;font-weight:700;">TOTAL OMSET SELESAI</div>
+            <div id="jobDoneTotalOmsetCard" style="font-size:1.85rem;font-weight:900;line-height:1.2;margin-top:2px;">Rp 0</div>
+            <div id="jobDoneMonthLabelCard2" style="font-size:0.75rem;color:#dbeafe;margin-top:2px;">Akumulasi Part Selesai</div>
+          </div>
+        </div>
+
+        <div style="background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#ffffff;border-radius:12px;padding:1.15rem 1.35rem;box-shadow:0 4px 12px rgba(76,29,149,0.22);display:flex;align-items:center;gap:1.1rem;">
+          <div style="font-size:2.3rem;background:rgba(255,255,255,0.18);border-radius:12px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            📦
+          </div>
+          <div>
+            <div style="font-size:0.75rem;letter-spacing:0.06em;text-transform:uppercase;color:#ddd6fe;font-weight:700;">TOTAL ITEM PART</div>
+            <div id="jobDoneTotalPartsCard" style="font-size:1.85rem;font-weight:900;line-height:1.2;margin-top:2px;">0 Part</div>
+            <div id="jobDoneMonthLabelCard3" style="font-size:0.75rem;color:#ede9fe;margin-top:2px;">Barang Telah Digunakan</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KARTU TABEL DATA JOB DONE -->
+      <div class="card">
+        <div class="card-header" style="flex-wrap:wrap;gap:0.75rem;">
+          <div>
+            <div class="card-title" style="font-size:1rem;">
+              <span>📋 Daftar Unit Job Done — <span id="jobDoneTableHeaderTitle">Bulan Ini</span></span>
+            </div>
+            <div class="card-subtitle">
+              Daftar ringkas per Nopol (klik "Lihat Part Lengkap" untuk melihat rincian item part tanpa memenuhi layar).
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <input
+              type="text"
+              id="jobDoneSearchInput"
+              class="input input-sm"
+              placeholder="🔍 Cari No. Polisi / SA..."
+              style="width:220px;"
+              oninput="handleJobDoneSearch(this.value)"
+            />
+          </div>
+        </div>
+
+        <div class="card-body" style="padding:0;">
+          <div class="table-responsive" style="max-height:680px;overflow-y:auto;">
+            <table class="table" id="jobDoneReportTable" style="margin:0;font-size:0.85rem;">
+              <thead style="position:sticky;top:0;background:#0f172a;color:#ffffff;z-index:2;">
+                <tr>
+                  <th style="width:45px;text-align:center;">NO</th>
+                  <th style="width:130px;">NO. POLISI</th>
+                  <th style="width:75px;text-align:center;">SA / PIC</th>
+                  <th style="width:105px;text-align:center;">TGL ORDER</th>
+                  <th style="width:105px;text-align:center;">TGL ATA</th>
+                  <th style="width:165px;text-align:center;background:#064e3b;color:#a7f3d0;">TGL JOB DONE</th>
+                  <th style="width:180px;text-align:center;">PART SELESAI</th>
+                  <th style="width:135px;text-align:right;">TOTAL OMSET</th>
+                  <th style="width:100px;text-align:center;">STATUS</th>
+                </tr>
+              </thead>
+              <tbody id="jobDoneReportTableBody">
+                <!-- Diisi secara dinamis lewat JavaScript -->
+              </tbody>
+            </table>
+          </div>
+
+          <div style="padding:0.75rem 1.25rem;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;font-size:0.78rem;color:#64748b;">
+            <span>💡 <em>Klik tombol hijau <strong>"👁️ Lihat Part Lengkap"</strong> pada Nopol untuk menampilkan detail suku cadang.</em></span>
+            <span id="jobDoneFooterSummaryNote">Memuat data Job Done...</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
          SECTION 3: PENGATURAN DINAMIS EMAIL SA & REMINDER H+7 OTOMATIS
          ====================================================================== -->
     <section id="sectionEmailSettings" class="no-print hidden">
@@ -1234,6 +1407,66 @@
 
       <div style="background:#f1f5f9;padding:0.75rem 1.35rem;border-top:1px solid #cbd5e1;display:flex;align-items:center;justify-content:flex-end;">
         <button type="button" class="btn btn-secondary btn-sm" onclick="closeKabengDetailModal()">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       POPUP MODAL: RINCIAN PART LENGKAP UNIT JOB DONE
+       ====================================================================== -->
+  <div id="jobDonePartModal" class="modal-backdrop hidden no-print" onclick="if(event.target===this) closeJobDonePartsModal()">
+    <div class="modal-box" style="max-width:760px;padding:0;overflow:hidden;border:1.5px solid #064e3b;box-shadow:0 24px 48px rgba(0,0,0,0.35);">
+      <div style="background:#064e3b;color:#fff;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">
+        <div>
+          <div style="font-size:1.1rem;font-weight:900;letter-spacing:0.02em;display:flex;align-items:center;gap:0.5rem;">
+            <span>📦 Rincian Part Lengkap — <span id="modalJobDoneNopol" style="color:#fde047;">DK-0000-XX</span></span>
+          </div>
+          <div id="modalJobDoneMeta" style="font-size:0.8rem;color:#a7f3d0;margin-top:0.25rem;">
+            SA: - &bull; Tanggal Order: - &bull; Tanggal Selesai: -
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" style="background:rgba(255,255,255,0.12);color:#fff;border-color:rgba(255,255,255,0.3);" onclick="closeJobDonePartsModal()">
+          ✕
+        </button>
+      </div>
+
+      <div style="padding:1.15rem 1.35rem;max-height:68vh;overflow-y:auto;background:#f8fafc;">
+        <div style="margin-bottom:0.85rem;display:flex;align-items:center;justify-content:space-between;background:#ecfdf5;border:1px solid #a7f3d0;padding:0.6rem 1rem;border-radius:8px;">
+          <span style="font-size:0.84rem;font-weight:700;color:#065f46;" id="modalJobDoneStatCount">0 Item Part</span>
+          <span style="font-size:0.95rem;font-weight:900;color:#047857;" id="modalJobDoneStatTotal">Total Omset: Rp 0</span>
+        </div>
+
+        <div class="parts-table-wrap">
+          <table class="parts-table" style="background:#fff;font-size:0.84rem;">
+            <thead>
+              <tr style="background:#0f172a;color:#ffffff;">
+                <th style="width:40px;text-align:center;">NO</th>
+                <th style="width:130px;">PART NO</th>
+                <th>NAMA PART</th>
+                <th style="width:55px;text-align:center;">QTY</th>
+                <th style="width:125px;text-align:right;">HARGA SATUAN</th>
+                <th style="width:135px;text-align:right;">SUBTOTAL</th>
+              </tr>
+            </thead>
+            <tbody id="modalJobDonePartsTbody">
+              <!-- Diisi secara dinamis -->
+            </tbody>
+            <tfoot style="background:#f1f5f9;font-weight:800;border-top:2px solid #cbd5e1;">
+              <tr>
+                <td colspan="3" style="text-align:right;padding:8px 12px;">TOTAL KESELURUHAN:</td>
+                <td id="modalJobDoneFootQty" style="text-align:center;padding:8px;">0</td>
+                <td></td>
+                <td id="modalJobDoneFootTotal" style="text-align:right;color:#047857;font-size:0.95rem;padding:8px 12px;">Rp 0</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div style="background:#f1f5f9;padding:0.75rem 1.35rem;border-top:1px solid #cbd5e1;display:flex;align-items:center;justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeJobDonePartsModal()">
           Tutup
         </button>
       </div>

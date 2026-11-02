@@ -13,6 +13,12 @@ const STATE = {
   kabengReportMonth: new Date().getMonth(),
   kabengReportYear: new Date().getFullYear(),
   kabengReportCache: {},
+  jobDoneReportMonth: new Date().getMonth(),
+  jobDoneReportYear: new Date().getFullYear(),
+  jobDoneSaFilter: 'ALL',
+  jobDoneSearchQuery: '',
+  jobDoneItemsCache: [],
+  jobDoneGroupedList: [],
   users: [
     { username: 'febri', password: 'admin123', name: 'Febri Rahmdani (FEB)', role: 'ADMIN_PARTMAN', roleName: 'Admin & Partman' },
     { username: 'kabeng', password: 'kabeng123', name: 'Kepala Bengkel', role: 'KABENG', roleName: 'Kepala Bengkel' },
@@ -364,11 +370,13 @@ function switchMainTab(tab) {
   const secPartman = document.getElementById('sectionPartman');
   const secMonitoring = document.getElementById('sectionMonitoring');
   const secKabeng = document.getElementById('sectionKabengReport');
+  const secJobDone = document.getElementById('sectionJobDoneReport');
   const secEmail = document.getElementById('sectionEmailSettings');
   const secUsers = document.getElementById('sectionUsers');
   const btnPartman = document.getElementById('tabBtnPartman');
   const btnMonitoring = document.getElementById('tabBtnMonitoring');
   const btnKabeng = document.getElementById('tabBtnKabengReport');
+  const btnJobDone = document.getElementById('tabBtnJobDoneReport');
   const btnEmail = document.getElementById('tabBtnEmail');
   const btnUsers = document.getElementById('tabBtnUsers');
   const subtitleEl = document.getElementById('activeMenuHeaderSubtitle');
@@ -376,12 +384,14 @@ function switchMainTab(tab) {
   secPartman.classList.toggle('hidden', tab !== 'partman');
   secMonitoring.classList.toggle('hidden', tab !== 'monitoring');
   if (secKabeng) secKabeng.classList.toggle('hidden', tab !== 'kabeng_report');
+  if (secJobDone) secJobDone.classList.toggle('hidden', tab !== 'jobdone_report');
   if (secEmail) secEmail.classList.toggle('hidden', tab !== 'email');
   if (secUsers) secUsers.classList.toggle('hidden', tab !== 'users');
 
   if (btnPartman) btnPartman.classList.toggle('active', tab === 'partman');
   if (btnMonitoring) btnMonitoring.classList.toggle('active', tab === 'monitoring');
   if (btnKabeng) btnKabeng.classList.toggle('active', tab === 'kabeng_report');
+  if (btnJobDone) btnJobDone.classList.toggle('active', tab === 'jobdone_report');
   if (btnEmail) btnEmail.classList.toggle('active', tab === 'email');
   if (btnUsers) btnUsers.classList.toggle('active', tab === 'users');
 
@@ -392,6 +402,8 @@ function switchMainTab(tab) {
       subtitleEl.textContent = `Monitoring SOP — ${STATE.activeSaSheet}`;
     } else if (tab === 'kabeng_report') {
       subtitleEl.textContent = 'Laporan Mingguan Kabeng — Unit & Omzet Lengkap Tiap SA';
+    } else if (tab === 'jobdone_report') {
+      subtitleEl.textContent = 'Rekapan Job Done — Performa Unit & Omset Selesai';
     } else if (tab === 'email') {
       subtitleEl.textContent = 'Pengaturan Email SA & Reminder H+7';
     } else if (tab === 'users') {
@@ -407,6 +419,8 @@ function switchMainTab(tab) {
     checkAndShowFu2ReminderPopup(false);
   } else if (tab === 'kabeng_report') {
     renderKabengWeeklyReport();
+  } else if (tab === 'jobdone_report') {
+    loadAndRenderJobDoneReport();
   } else if (tab === 'email') {
     renderSaEmailsTable();
   } else if (tab === 'users') {
@@ -2755,12 +2769,27 @@ async function markOrderJobDone(domPrefix) {
   // Tandai selesai & langsung hapus dari daftar Monitoring SOP di layar
   const doneKey = `${sheetName}::${nopol.toUpperCase()}`;
   if (!STATE.completedJobs) STATE.completedJobs = {};
+  const nowDone = new Date();
+  const dayStr = String(nowDone.getDate()).padStart(2, '0');
+  const monStr = SHORT_MONTHS_ID[nowDone.getMonth()];
+  const yrStr = nowDone.getFullYear();
+  const hrStr = String(nowDone.getHours()).padStart(2, '0');
+  const minStr = String(nowDone.getMinutes()).padStart(2, '0');
+  const jobDoneFormatted = `${dayStr} ${monStr} ${yrStr}, ${hrStr}:${minStr}`;
+
   STATE.completedJobs[doneKey] = {
-    completedAt: new Date().toISOString(),
+    completedAt: nowDone.toISOString(),
+    completedDisplay: jobDoneFormatted,
     nopol: nopol,
-    sheetName: sheetName
+    sheetName: sheetName,
+    orderNo: latestOrderNo,
+    orderDate: latestOrderDate,
+    ata: latestAta,
+    saPic: latestPic,
+    items: updatedItems
   };
   localStorage.setItem('SOP_COMPLETED_JOBS', JSON.stringify(STATE.completedJobs));
+  STATE.jobDoneItemsCache = []; // Invalidate cache agar data Job Done terbaru langsung terambil
 
   if (Array.isArray(STATE.monitoringBySheet[sheetName])) {
     STATE.monitoringBySheet[sheetName] = STATE.monitoringBySheet[sheetName].filter(
@@ -5237,6 +5266,517 @@ function fallbackCopyText(text) {
  * Mencetak Laporan Mingguan Kabeng
  */
 function printKabengReport() {
+  window.print();
+}
+
+/**
+ * ============================================================================
+ * SECTION: REKAPAN JOB DONE (BULAN BERJALAN & HISTORI SELESAI)
+ * ============================================================================
+ */
+
+function initJobDoneReportControls() {
+  const mSelect = document.getElementById('jobDoneMonthSelect');
+  const ySelect = document.getElementById('jobDoneYearSelect');
+  const saSelect = document.getElementById('jobDoneSaFilter');
+  if (mSelect) mSelect.value = String(STATE.jobDoneReportMonth);
+  if (ySelect) ySelect.value = String(STATE.jobDoneReportYear);
+  if (saSelect) saSelect.value = STATE.jobDoneSaFilter || 'ALL';
+}
+
+function handleJobDoneFilterChange() {
+  const mSelect = document.getElementById('jobDoneMonthSelect');
+  const ySelect = document.getElementById('jobDoneYearSelect');
+  const saSelect = document.getElementById('jobDoneSaFilter');
+  if (mSelect) STATE.jobDoneReportMonth = parseInt(mSelect.value, 10);
+  if (ySelect) STATE.jobDoneReportYear = parseInt(ySelect.value, 10);
+  if (saSelect) STATE.jobDoneSaFilter = saSelect.value;
+  renderJobDoneReport();
+}
+
+function changeJobDoneReportMonth(delta) {
+  let m = STATE.jobDoneReportMonth + delta;
+  let y = STATE.jobDoneReportYear;
+  if (m < 0) {
+    m = 11;
+    y -= 1;
+  } else if (m > 11) {
+    m = 0;
+    y += 1;
+  }
+  STATE.jobDoneReportMonth = m;
+  STATE.jobDoneReportYear = y;
+  initJobDoneReportControls();
+  renderJobDoneReport();
+}
+
+function resetJobDoneReportToCurrentMonth() {
+  const now = new Date();
+  STATE.jobDoneReportMonth = now.getMonth();
+  STATE.jobDoneReportYear = now.getFullYear();
+  initJobDoneReportControls();
+  renderJobDoneReport();
+}
+
+function handleJobDoneSearch(val) {
+  STATE.jobDoneSearchQuery = String(val || '').trim().toUpperCase();
+  renderJobDoneReport();
+}
+
+/**
+ * Memuat data Job Done dari WebAppAPI.gs atau direct gviz sheet 'JOB DONE'
+ */
+async function loadAndRenderJobDoneReport(forceRefresh) {
+  initJobDoneReportControls();
+  const tbody = document.getElementById('jobDoneReportTableBody');
+
+  if (!forceRefresh && Array.isArray(STATE.jobDoneItemsCache) && STATE.jobDoneItemsCache.length > 0) {
+    renderJobDoneReport();
+    return;
+  }
+
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="9" style="text-align:center;padding:3rem 1rem;color:#047857;">
+          <div style="font-size:1.8rem;margin-bottom:0.5rem;">⏳</div>
+          <div style="font-weight:700;">Menghubungkan ke Sheet JOB DONE Google Spreadsheet...</div>
+          <div style="font-size:0.8rem;color:#64748b;margin-top:4px;">Mengambil rekapan unit dan omset selesai...</div>
+        </td>
+      </tr>
+    `;
+  }
+
+  const monId = window.SOP_CONFIG ? window.SOP_CONFIG.SPREADSHEET_MONITORING_ID : '1khVp8XaG1daE589qIEKp-NwcF17hXNkaHw4vX2Cp9wU';
+
+  // 1. Coba ambil lewat WebAppAPI (action=getJobDone)
+  if (STATE.apiUrl) {
+    try {
+      const res = await fetch(`${STATE.apiUrl}?action=getJobDone`);
+      const data = await res.json();
+      if (data && data.status === 'ok' && Array.isArray(data.items)) {
+        STATE.jobDoneItemsCache = data.items;
+        renderJobDoneReport();
+        return;
+      }
+    } catch (apiErr) {
+      // Fallback ke live read gviz di bawah
+    }
+  }
+
+  // 2. Fallback Direct Live Read via Google Sheets GViz dari Sheet 'JOB DONE'
+  try {
+    const rawRows = await fetchGvizSheet(monId, 'JOB DONE', 'SELECT A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S');
+    const items = [];
+    let lastN = '';
+    let lastOD = '';
+    let lastSA = '';
+    let lastJD = '';
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const r = rawRows[i];
+      const colA = String(r[0] || '').trim().toUpperCase();
+      const colD = String(r[3] || '').trim();
+      const colE = String(r[4] || '').trim();
+
+      if (colA === 'NOPOL' || colD === 'PART NO' || colE === 'PART NAME') continue;
+
+      if (!colA && !colD && !colE) {
+        lastN = ''; lastOD = ''; lastSA = ''; lastJD = '';
+        continue;
+      }
+
+      if (colA && colA !== lastN) {
+        lastN = colA;
+        lastOD = String(r[1] || '').trim();
+        lastSA = String(r[17] || '').trim();
+        lastJD = String(r[18] || '').trim();
+      }
+
+      const nopol = colA || lastN;
+      if (!nopol) continue;
+
+      const orderDate = String(r[1] || lastOD || '').trim();
+      const orderNo = String(r[2] || '').trim();
+      const qty = parseFloat(r[5]) || 1;
+      const price = parseFloat(r[6]) || 0;
+      const total = parseFloat(r[8]) || (qty * price);
+      const ata = String(r[9] || '').trim();
+      let saPic = String(r[17] || lastSA || '').trim().toUpperCase();
+      if (!saPic || saPic === '#REF!') saPic = 'OTHER';
+
+      const jobDoneDate = String(r[18] || lastJD || ata || orderDate || '').trim();
+
+      items.push({
+        id: 'JD-' + i,
+        nopol: nopol,
+        orderDate: orderDate,
+        orderNo: orderNo,
+        partNo: colD || '-',
+        partName: colE || '-',
+        qty: qty,
+        price: price,
+        total: total,
+        ata: ata,
+        saPic: saPic,
+        jobDoneDate: jobDoneDate
+      });
+    }
+
+    STATE.jobDoneItemsCache = items;
+    renderJobDoneReport();
+  } catch (err) {
+    renderJobDoneReport();
+    showToast('Gagal memuat langsung dari Sheet JOB DONE, menampilkan data cache.', true);
+  }
+}
+
+/**
+ * Mengelompokkan item part menjadi per Nopol dan menghitung omset & tanggal penyelesaian
+ */
+function renderJobDoneReport() {
+  const month = STATE.jobDoneReportMonth;
+  const year = STATE.jobDoneReportYear;
+  const saFilter = STATE.jobDoneSaFilter || 'ALL';
+  const query = STATE.jobDoneSearchQuery || '';
+
+  const monthName = SHORT_MONTHS_ID[month] || '';
+  const monthLabel = `${monthName} ${year}`;
+
+  // Update Label Header
+  const titleEl = document.getElementById('jobDoneTableHeaderTitle');
+  if (titleEl) titleEl.textContent = monthLabel;
+
+  const card1 = document.getElementById('jobDoneMonthLabelCard1');
+  const card2 = document.getElementById('jobDoneMonthLabelCard2');
+  const card3 = document.getElementById('jobDoneMonthLabelCard3');
+  if (card1) card1.textContent = `Bulan ${monthLabel}`;
+  if (card2) card2.textContent = `Bulan ${monthLabel}`;
+  if (card3) card3.textContent = `Bulan ${monthLabel}`;
+
+  // 1. Grouping Data dari STATE.jobDoneItemsCache
+  const groupMap = new Map();
+
+  (STATE.jobDoneItemsCache || []).forEach((it) => {
+    const key = `${it.nopol}__${it.orderDate || ''}`;
+    if (!groupMap.has(key)) {
+      groupMap.set(key, {
+        nopol: it.nopol,
+        orderDate: it.orderDate,
+        orderNo: it.orderNo,
+        saPic: it.saPic,
+        ata: it.ata,
+        jobDoneDate: it.jobDoneDate,
+        items: [],
+        totalOmset: 0
+      });
+    }
+    const g = groupMap.get(key);
+    if (!g.orderNo && it.orderNo) g.orderNo = it.orderNo;
+    if (!g.ata && it.ata) g.ata = it.ata;
+    if ((!g.saPic || g.saPic === 'OTHER') && it.saPic && it.saPic !== 'OTHER') g.saPic = it.saPic;
+    if (!g.jobDoneDate && it.jobDoneDate) g.jobDoneDate = it.jobDoneDate;
+
+    g.items.push({
+      partNo: it.partNo,
+      partName: it.partName,
+      qty: it.qty,
+      price: it.price,
+      total: it.total
+    });
+    g.totalOmset += it.total;
+  });
+
+  // 2. Merge data dari completedJobs lokal jika ada yang belum tercatat di sheet
+  if (STATE.completedJobs && typeof STATE.completedJobs === 'object') {
+    Object.values(STATE.completedJobs).forEach((cj) => {
+      if (!cj || !cj.nopol) return;
+      const cleanN = String(cj.nopol).trim().toUpperCase();
+      const key = `${cleanN}__${cj.orderDate || ''}`;
+      if (!groupMap.has(key) && Array.isArray(cj.items) && cj.items.length > 0) {
+        let tot = 0;
+        const itms = cj.items.map((it) => {
+          const t = (Number(it.qty) || 1) * (Number(it.price) || 0);
+          tot += t;
+          return {
+            partNo: it.partNo || '-',
+            partName: it.partName || '-',
+            qty: Number(it.qty) || 1,
+            price: Number(it.price) || 0,
+            total: t
+          };
+        });
+        groupMap.set(key, {
+          nopol: cleanN,
+          orderDate: cj.orderDate || '',
+          orderNo: cj.orderNo || '',
+          saPic: cj.saPic || cj.sheetName || 'OTHER',
+          ata: cj.ata || '',
+          jobDoneDate: cj.completedDisplay || cj.completedAt || '',
+          items: itms,
+          totalOmset: tot
+        });
+      }
+    });
+  }
+
+  // 3. Parsing tanggal Job Done & Filter Per Bulan/Tahun yang dipilih
+  const allGroups = Array.from(groupMap.values());
+  const filteredGroups = [];
+
+  allGroups.forEach((g) => {
+    // Cari tanggal pembanding untuk penempatan bulan
+    let doneDateObj = null;
+    let doneDateDisplay = g.jobDoneDate || '';
+
+    if (g.jobDoneDate) {
+      doneDateObj = parseFlexibleDateToObj(g.jobDoneDate);
+    }
+    if (!doneDateObj && g.ata) {
+      doneDateObj = parseFlexibleDateToObj(g.ata);
+    }
+    if (!doneDateObj && g.orderDate) {
+      doneDateObj = parseFlexibleDateToObj(g.orderDate);
+    }
+
+    g.jobDoneDateObj = doneDateObj;
+
+    // Format tampilan tanggal Job Done
+    if (g.jobDoneDate && g.jobDoneDate.includes(':')) {
+      // Sudah ada jam (misal: 02/11/2026 14:30 atau ISO)
+      if (doneDateObj) {
+        const d = String(doneDateObj.getDate()).padStart(2, '0');
+        const m = SHORT_MONTHS_ID[doneDateObj.getMonth()];
+        const y = doneDateObj.getFullYear();
+        const hr = String(doneDateObj.getHours()).padStart(2, '0');
+        const mn = String(doneDateObj.getMinutes()).padStart(2, '0');
+        doneDateDisplay = `${d} ${m} ${y}, ${hr}:${mn}`;
+      }
+    } else if (doneDateObj) {
+      const d = String(doneDateObj.getDate()).padStart(2, '0');
+      const m = SHORT_MONTHS_ID[doneDateObj.getMonth()];
+      const y = doneDateObj.getFullYear();
+      doneDateDisplay = `${d} ${m} ${y}`;
+    }
+
+    g.jobDoneDateDisplay = doneDateDisplay || '-';
+
+    // Filter Periode Bulan & Tahun
+    if (doneDateObj) {
+      if (doneDateObj.getMonth() !== month || doneDateObj.getFullYear() !== year) {
+        return;
+      }
+    }
+
+    // Filter SA
+    if (saFilter !== 'ALL' && g.saPic !== saFilter) {
+      return;
+    }
+
+    // Filter Search Nopol / SA / OrderNo
+    if (query) {
+      const matchNopol = g.nopol.toUpperCase().includes(query);
+      const matchSa = (g.saPic || '').toUpperCase().includes(query);
+      const matchOrder = (g.orderNo || '').toUpperCase().includes(query);
+      if (!matchNopol && !matchSa && !matchOrder) {
+        return;
+      }
+    }
+
+    filteredGroups.push(g);
+  });
+
+  // Urutkan berdasarkan tanggal Job Done terbaru di atas
+  filteredGroups.sort((a, b) => {
+    const tA = a.jobDoneDateObj ? a.jobDoneDateObj.getTime() : 0;
+    const tB = b.jobDoneDateObj ? b.jobDoneDateObj.getTime() : 0;
+    return tB - tA;
+  });
+
+  STATE.jobDoneGroupedList = filteredGroups;
+
+  // 4. Hitung Akumulasi Total KPI
+  const totalUnits = filteredGroups.length;
+  const totalOmset = filteredGroups.reduce((acc, g) => acc + (g.totalOmset || 0), 0);
+  const totalParts = filteredGroups.reduce((acc, g) => acc + (g.items ? g.items.length : 0), 0);
+
+  // Update Elemen Kartu KPI
+  const unitsCard = document.getElementById('jobDoneTotalUnitsCard');
+  const omsetCard = document.getElementById('jobDoneTotalOmsetCard');
+  const partsCard = document.getElementById('jobDoneTotalPartsCard');
+  if (unitsCard) unitsCard.textContent = `${totalUnits} Unit`;
+  if (omsetCard) omsetCard.textContent = formatRupiah(totalOmset);
+  if (partsCard) partsCard.textContent = `${totalParts} Part`;
+
+  const footerNote = document.getElementById('jobDoneFooterSummaryNote');
+  if (footerNote) {
+    footerNote.textContent = `Menampilkan ${totalUnits} unit selesai (${totalParts} part) | Total: ${formatRupiah(totalOmset)}`;
+  }
+
+  // 5. Render Baris Tabel
+  const tbody = document.getElementById('jobDoneReportTableBody');
+  if (!tbody) return;
+
+  if (filteredGroups.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="9" style="text-align:center;padding:3.5rem 1rem;color:#64748b;">
+          <div style="font-size:2.5rem;margin-bottom:0.5rem;">🚗💨</div>
+          <div style="font-weight:800;font-size:1.05rem;color:#1e293b;">Belum ada data Job Done pada ${monthLabel}</div>
+          <div style="font-size:0.82rem;margin-top:0.35rem;color:#64748b;">
+            Unit yang diklik tombol <strong>"Job Done"</strong> di menu Monitoring SOP akan otomatis tercatat dan direkap di sini.
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = filteredGroups.map((g, idx) => {
+    const saClass = ['AJS', 'AYU', 'FIK', 'WBN'].includes(g.saPic) ? `badge-sa-${g.saPic.toLowerCase()}` : '';
+    return `
+      <tr style="transition:background 0.15s ease;">
+        <td style="text-align:center;font-weight:700;color:#64748b;">${idx + 1}</td>
+        <td>
+          <span style="background:#09090b;color:#fde047;border:1.5px solid #d4d4d8;border-radius:5px;padding:3px 8px;font-family:monospace;font-weight:900;letter-spacing:0.06em;display:inline-block;">
+            ${escapeHtml(g.nopol)}
+          </span>
+          ${g.orderNo ? `<div style="font-size:0.7rem;color:#64748b;margin-top:3px;">No: ${escapeHtml(g.orderNo)}</div>` : ''}
+        </td>
+        <td style="text-align:center;">
+          <span class="badge ${saClass}" style="font-weight:800;padding:3px 8px;border-radius:6px;font-size:0.75rem;">
+            ${escapeHtml(g.saPic || 'OTHER')}
+          </span>
+        </td>
+        <td style="text-align:center;color:#334155;font-weight:600;">${escapeHtml(g.orderDate || '-')}</td>
+        <td style="text-align:center;color:#334155;font-weight:600;">${escapeHtml(g.ata || '-')}</td>
+        <td style="text-align:center;">
+          <span style="display:inline-flex;align-items:center;gap:4px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;padding:4px 8px;border-radius:6px;font-weight:700;font-size:0.78rem;">
+            <span>📅</span> ${escapeHtml(g.jobDoneDateDisplay)}
+          </span>
+        </td>
+        <td style="text-align:center;">
+          <span style="font-weight:800;color:#1e293b;margin-right:6px;">${g.items.length} Part</span>
+          <button
+            type="button"
+            class="btn btn-xs"
+            style="background:#059669;color:#ffffff;border:none;padding:3px 9px;border-radius:5px;font-size:0.72rem;font-weight:800;cursor:pointer;box-shadow:0 1px 3px rgba(5,150,105,0.3);"
+            onclick="openJobDonePartsModal('${encodeURIComponent(g.nopol)}')"
+            title="Klik untuk membuka rincian suku cadang lengkap"
+          >
+            👁️ Lihat Part Lengkap
+          </button>
+        </td>
+        <td style="text-align:right;font-weight:800;color:#047857;font-size:0.92rem;">
+          ${formatRupiah(g.totalOmset)}
+        </td>
+        <td style="text-align:center;">
+          <span class="badge" style="background:#059669;color:#ffffff;font-weight:800;font-size:0.72rem;padding:3px 8px;border-radius:6px;">
+            ✓ SELESAI
+          </span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/**
+ * Menampilkan Pop-Up Modal Rincian Part Lengkap Per Nopol
+ */
+function openJobDonePartsModal(encodedNopol) {
+  const nopol = decodeURIComponent(encodedNopol).toUpperCase();
+  const grp = (STATE.jobDoneGroupedList || []).find((g) => g.nopol.toUpperCase() === nopol);
+  if (!grp) {
+    showToast('Data rincian part tidak ditemukan untuk ' + nopol, true);
+    return;
+  }
+
+  const modal = document.getElementById('jobDonePartModal');
+  const nopolEl = document.getElementById('modalJobDoneNopol');
+  const metaEl = document.getElementById('modalJobDoneMeta');
+  const statCount = document.getElementById('modalJobDoneStatCount');
+  const statTotal = document.getElementById('modalJobDoneStatTotal');
+  const tbody = document.getElementById('modalJobDonePartsTbody');
+  const footQty = document.getElementById('modalJobDoneFootQty');
+  const footTotal = document.getElementById('modalJobDoneFootTotal');
+
+  if (nopolEl) nopolEl.textContent = grp.nopol;
+  if (metaEl) {
+    metaEl.innerHTML = `SA PIC: <strong>${escapeHtml(grp.saPic)}</strong> &bull; Tgl Order: <strong>${escapeHtml(grp.orderDate || '-')}</strong> &bull; Tgl Selesai: <strong>${escapeHtml(grp.jobDoneDateDisplay)}</strong>`;
+  }
+  if (statCount) statCount.textContent = `${grp.items.length} Item Part Selesai`;
+  if (statTotal) statTotal.textContent = `Total Omset: ${formatRupiah(grp.totalOmset)}`;
+
+  let totalQty = 0;
+  if (tbody) {
+    tbody.innerHTML = grp.items.map((it, idx) => {
+      const q = Number(it.qty) || 1;
+      const p = Number(it.price) || 0;
+      const t = it.total !== undefined ? it.total : (q * p);
+      totalQty += q;
+      return `
+        <tr>
+          <td style="text-align:center;color:#64748b;font-weight:700;">${idx + 1}</td>
+          <td style="font-family:monospace;font-weight:700;color:#0f172a;">${escapeHtml(it.partNo || '-')}</td>
+          <td style="font-weight:600;color:#1e293b;">${escapeHtml(it.partName || '-')}</td>
+          <td style="text-align:center;font-weight:800;">${q}</td>
+          <td style="text-align:right;color:#475569;">${formatRupiah(p)}</td>
+          <td style="text-align:right;font-weight:800;color:#047857;">${formatRupiah(t)}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  if (footQty) footQty.textContent = totalQty;
+  if (footTotal) footTotal.textContent = formatRupiah(grp.totalOmset);
+
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeJobDonePartsModal() {
+  const modal = document.getElementById('jobDonePartModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * Menyalin data tabel Rekapan Job Done ke clipboard dalam format TSV (bisa langsung Ctrl+V di Excel)
+ */
+function copyJobDoneTableToClipboard() {
+  const list = STATE.jobDoneGroupedList || [];
+  if (list.length === 0) {
+    showToast('Tidak ada data Job Done pada bulan ini untuk disalin.', true);
+    return;
+  }
+
+  const monthName = SHORT_MONTHS_ID[STATE.jobDoneReportMonth] || '';
+  const year = STATE.jobDoneReportYear;
+
+  let tsv = `REKAPAN JOB DONE - AGUNG TOYOTA GIANYAR (${monthName} ${year})\n`;
+  tsv += `NO\tNO. POLISI\tSA / PIC\tTGL ORDER\tTGL ATA\tTGL JOB DONE\tJUMLAH PART\tTOTAL OMSET (RP)\tSTATUS\n`;
+
+  list.forEach((g, idx) => {
+    tsv += `${idx + 1}\t${g.nopol}\t${g.saPic || 'OTHER'}\t${g.orderDate || '-'}\t${g.ata || '-'}\t${g.jobDoneDateDisplay}\t${g.items.length} Part\t${g.totalOmset}\tJOB DONE\n`;
+  });
+
+  const totalOmset = list.reduce((s, g) => s + (g.totalOmset || 0), 0);
+  const totalParts = list.reduce((s, g) => s + (g.items ? g.items.length : 0), 0);
+  tsv += `TOTAL\t${list.length} UNIT\t\t\t\t\t${totalParts} PART\t${totalOmset}\tSELESAI\n`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(tsv).then(() => {
+      showToast('📋 Tabel Rekapan Job Done berhasil disalin! Silakan paste (Ctrl+V) langsung ke Excel / Google Sheets.');
+    }).catch(() => {
+      fallbackCopyText(tsv);
+    });
+  } else {
+    fallbackCopyText(tsv);
+  }
+}
+
+/**
+ * Mencetak Rekapan Job Done
+ */
+function printJobDoneReport() {
   window.print();
 }
 
