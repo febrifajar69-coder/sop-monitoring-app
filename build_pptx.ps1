@@ -1,4 +1,4 @@
-﻿# PowerShell script to generate Presentasi_Kaizen_SOP_Agung_Toyota_Gianyar.pptx
+# PowerShell script to generate Presentasi_Kaizen_SOP_Agung_Toyota_Gianyar.pptx
 param(
     [string]$OutputPath = "C:\Users\Ebix25\.gemini\antigravity\scratch\sop-monitoring-app\presentation\Presentasi_Kaizen_SOP_Agung_Toyota_Gianyar.pptx"
 )
@@ -317,15 +317,12 @@ $s1 = ""
 $s1 += New-BoxShape 2 "TopAccent" 0 0 12192000 95250 "E60012" ""
 $s1 += New-BoxShape 3 "BgCard" 952500 762000 10287000 5334000 "0B2341" "1E3A8A" 25400 12000
 $s1 += New-BoxShape 4 "RedLine" 1524000 1447800 1524000 57150 "E60012" ""
-$s1 += New-BoxShape 5 "ContestBadge" 1524000 1752600 5200000 457200 "18181B" "E60012" 15000 8000
-
-$badgeP = (P "TOYOTA DEALER PEOPLE CONTEST (DPC) â€¢ TAM" 1100 1 "FFFFFF" "ctr" 0)
-$s1 += New-TextShape 6 "BadgeTxt" 1524000 1800000 5200000 381000 $badgeP "ctr"
 
 $covP = (P "DIGITALISASI SISTEM ORDER &amp; MONITORING SPECIAL ORDER PART (SOP)" 3000 1 "FFFFFF" "l" 120000)
-$covP += (P "Integrasi Real-Time Proses Order, Monitoring Status, dan Revenue Part di Bengkel Agung Toyota Gianyar" 1600 0 "93C5FD" "l" 200000)
-$covP += (P "Oleh: FEBRI RACHMADANI (Partman) â€¢ PT AGUNG AUTOMALL GIANYAR" 1400 1 "F87171" "l" 0)
-$s1 += New-TextShape 7 "MainTitle" 1524000 2400000 9144000 2800000 $covP "t"
+$covP += (P "Integrasi Real-Time Proses Order, Monitoring Status, dan Revenue Part di Bengkel Agung Toyota Gianyar" 1600 0 "93C5FD" "l" 240000)
+$covP += (P "Oleh: FEBRI FAJAR RACHMADANI" 1600 1 "FFFFFF" "l" 40000)
+$covP += (P "Partman • Agung Toyota Gianyar" 1300 0 "93C5FD" "l" 0)
+$s1 += New-TextShape 7 "MainTitle" 1524000 1800000 9144000 3800000 $covP "t"
 [System.IO.File]::WriteAllText((Join-Path $tempDir "ppt\slides\slide1.xml"), (Build-SlideXml $s1), [System.Text.Encoding]::UTF8)
 
 # --- SLIDE 2: LANGKAH 1 (CLARIFY PROBLEM) ---
