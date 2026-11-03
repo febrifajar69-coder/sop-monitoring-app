@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presentasi Kaizen SOP - Agung Toyota Gianyar</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+    
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: #050b14;
+      color: #f1f5f9;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* 16:9 Aspect Ratio Container */
+    .slide-viewport {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #030712;
+      position: relative;
+    }
+
+    .slide-canvas {
+      width: 100%;
+      max-width: 1366px;
+      aspect-ratio: 16 / 9;
+      height: auto;
+      max-height: 96vh;
+      background: radial-gradient(circle at top right, #0b2341 0%, #090e17 60%, #05080f 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(11, 35, 65, 0.4);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      padding: 2.25rem 2.75rem;
+      box-sizing: border-box;
+    }
+
+    .slide-canvas::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, #e60012 0%, #dc2626 40%, #0b2341 100%);
+      z-index: 20;
+    }
+
+    .slide {
+      display: none;
+      height: 100%;
+      flex-direction: column;
+      justify-content: space-between;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .slide.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Print styles for exporting to PDF */
+    @media print {
+      body {
+        overflow: visible;
+        background: #090e17;
+      }
+      .slide-viewport {
+        width: 100%;
+        height: auto;
+        display: block;
+        background: transparent;
+      }
+      .nav-bar {
+        display: none !important;
+      }
+      .slide-canvas {
+        max-width: 100%;
+        max-height: none;
+        width: 100vw;
+        height: 100vh;
+        page-break-after: always;
+        break-after: page;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        padding: 2.5rem 3rem;
+      }
+      .slide {
+        display: flex !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="slide-viewport">
+    <div class="slide-canvas">
+
+      <!-- ==================== SLIDE 1: COVER ==================== -->
+      <div class="slide active" id="slide-1">
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+          <div class="flex items-center gap-3">
+            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1.5 rounded-md tracking-wider uppercase shadow-md">
+              TOYOTA DEALER PEOPLE CONTEST (DPC)
+            </span>
+            <span class="text-slate-400 text-xs font-semibold tracking-wide">
+              TOYOTA ASTRA MOTOR • KAIZEN PRESENTATION
+            </span>
+          </div>
+          <div class="text-right">
+            <span class="text-sm font-extrabold text-white tracking-wide">PT AGUNG AUTOMALL GIANYAR</span>
+          </div>
+        </div>
+
+        <div class="my-auto py-6">
+          <div class="inline-flex items-center gap-2 px-3 py-1 bg-red-950/40 border border-red-500/30 rounded-full text-red-400 text-xs font-bold mb-4">
+            <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+            TBP 8 Steps Kaizen Project
+          </div>
+          <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight max-w-4xl mb-4">
+            DIGITALISASI SISTEM ORDER &amp; MONITORING SPECIAL ORDER PART (SOP)
+          </h1>
+          <p class="text-lg md:text-xl text-blue-300 font-medium max-w-3xl leading-relaxed mb-6">
+            Integrasi Real-Time Proses Order, Monitoring Status, dan Revenue Part di Bengkel Agung Toyota Gianyar
+          </p>
+
+          <div class="flex items-center gap-4 pt-4 border-t border-white/10">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center font-black text-white text-xl shadow-lg">
+              FR
+            </div>
+            <div>
+              <div class="text-white font-extrabold text-base">FEBRI RACHMADANI</div>
+              <div class="text-slate-400 text-xs font-semibold">Partman • Bengkel Agung Toyota Gianyar</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-4 border-t border-white/10 text-xs text-slate-400 font-medium">
+          <div>Pola Pikir: Toyota Business Practice (TBP) 8 Steps of Problem Solving</div>
+          <div>Agung Toyota Gianyar &bull; Nov 2026</div>
+        </div>
+      </div>
+
+      <!-- ==================== SLIDE 2: LANGKAH 1 ==================== -->
+      <div class="slide" id="slide-2">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center gap-3">
+            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 1</span>
+            <h2 class="text-xl font-black text-white">CLARIFY THE PROBLEM (MEMPERJELAS MASALAH)</h2>
+          </div>
+          <div class="text-xs text-slate-400 font-semibold">Situasi Ideal vs Aktual Lapangan</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-5 my-auto py-2">
+          <!-- Kondisi Ideal -->
+          <div class="bg-emerald-950/20 border-2 border-emerald-500/40 rounded-xl p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-sm mb-3">
+                <span class="text-lg">🎯</span> KONDISI IDEAL (TARGET BENGKEL)
+              </div>
+              <ul class="space-y-3 text-xs md:text-sm text-slate-200">
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-400 font-bold">✓</span>
+                  <span><strong>Distribusi Order Otomatis:</strong> Permintaan SOP dari SA langsung terhubung ke gudang tanpa ketik ulang berulang kali.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-400 font-bold">✓</span>
+                  <span><strong>Zero Dead-Stock:</strong> Begitu fisik part tiba (ATA), SA langsung menindaklanjuti ke konsumen sehingga lead time penyerapan part minimal.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-400 font-bold">✓</span>
+                  <span><strong>Visibilitas Part Revenue:</strong> Nilai penjualan part SOP harian dan bulanan terpantau transparan dan terukur seketika.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="mt-4 pt-3 border-t border-emerald-500/20 text-xs font-bold text-emerald-300">
+              Output: Pelayanan Cepat &bull; Part Terpasang &bull; Customer Delight
+            </div>
+          </div>
+
+          <!-- Kondisi Aktual -->
+          <div class="bg-red-950/20 border-2 border-red-500/40 rounded-xl p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 text-red-400 font-extrabold text-sm mb-3">
+                <span class="text-lg">⚠️</span> KONDISI AKTUAL (SEBELUM KAIZEN)
+              </div>
+              <ul class="space-y-3 text-xs md:text-sm text-slate-200">
+                <li class="flex items-start gap-2">
+                  <span class="text-red-400 font-bold">✕</span>
+                  <span><strong>Beban Partman Manual:</strong> Partman harus memindahkan data multi-item part secara manual ke sheet masing-masing SA.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-red-400 font-bold">✕</span>
+                  <span><strong>Part Menginap di Rak:</strong> SA tidak sadar part sudah datang (ATA) karena tidak ada alarm pengingat otomatis. Part menginap berhari-hari.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-red-400 font-bold">✕</span>
+                  <span><strong>Rekapitulasi Manual:</strong> Rekapan Job Done dan nilai rupiah part baru bisa dihitung manual saat tutup buku akhir bulan.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="mt-4 pt-3 border-t border-red-500/20 text-xs font-bold text-red-300">
+              Dampak: Administrasi Lambat &bull; Risiko Holding Cost &bull; Respon Pelanggan Terlambat
+            </div>
+          </div>
+        </div>
+
+        <!-- The Gap -->
+        <div class="bg-slate-900/80 border border-sky-500/30 rounded-xl px-5 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="text-sky-400 font-black text-sm uppercase tracking-wider">THE GAP:</span>
+            <span class="text-xs md:text-sm text-sky-100 font-medium">
+              Ketiadaan platform terintegrasi real-time antara Partman &amp; SA, serta ketiadaan Sistem Peringatan Dini (Early Warning) otomatis saat part tiba di gudang.
+            </span>
+          </div>
+          <span class="text-xs text-sky-400 font-bold hidden md:inline-block">Kesenjangan Masalah</span>
+        </div>
+      </div>
+
+      <!-- ==================== SLIDE 3: LANGKAH 2 ==================== -->
+      <div class="slide" id="slide-3">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center gap-3">
+            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 2</span>
+            <h2 class="text-xl font-black text-white">BREAKDOWN THE PROBLEM (MEMECAH MASALAH)</h2>
+          </div>
+          <div class="text-xs text-slate-400 font-semibold">Analisis 3 Area Kritis (Partman • SA • Manajemen)</div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4 my-auto py-3">
+          <!-- Area 1: Partman -->
+          <div class="bg-slate-900/70 border border-blue-500/30 rounded-xl p-4 flex flex-col justify-between">
+            <div>
+              <div class="w-9 h-9 rounded-lg bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-blue-400 font-black text-base mb-3">
+                01
+              </div>
+              <h3 class="text-sm font-extrabold text-blue-300 mb-1">ASPEK PEMESANAN</h3>
+              <div class="text-xs text-slate-400 font-semibold mb-3">Tanggung Jawab: Partman</div>
+              <ul class="space-y-2 text-xs text-slate-300">
+                <li class="flex items-start gap-1.5">
+                  <span class="text-blue-400">•</span>
+                  <span><strong>Input Manual Berulang:</strong> Membuat form order fisik lalu mengetik ulang ke sheet monitoring SA masing-masing.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-blue-400">•</span>
+                  <span><strong>Multi-Item Part Rumit:</strong> Penanganan order multi-item rawan kolom rumus bergeser atau part terlewat.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-blue-400">•</span>
+                  <span><strong>Waktu Terbuang:</strong> Waktu Partman tersita untuk administrasi ketik daripada kontrol stok.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="mt-4 pt-2 border-t border-white/10 text-xs font-bold text-blue-400">
+              Titik Kritis: Redundansi Input
+            </div>
+          </div>
+
+          <!-- Area 2: SA -->
+          <div class="bg-slate-900/70 border border-red-500/30 rounded-xl p-4 flex flex-col justify-between">
+            <div>
+              <div class="w-9 h-9 rounded-lg bg-red-600/30 border border-red-500/40 flex items-center justify-center text-red-400 font-black text-base mb-3">
+                02
+              </div>
+              <h3 class="text-sm font-extrabold text-red-300 mb-1">ASPEK MONITORING</h3>
+              <div class="text-xs text-slate-400 font-semibold mb-3">Tanggung Jawab: Service Advisor</div>
+              <ul class="space-y-2 text-xs text-slate-300">
+                <li class="flex items-start gap-1.5">
+                  <span class="text-red-400">•</span>
+                  <span><strong>Blind-Spot Kedatangan (ATA):</strong> SA tidak tahu saat part sudah tiba di rak gudang kecuali cek fisik manual.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-red-400">•</span>
+                  <span><strong>Follow-Up Terlambat:</strong> Part lengkap menginap &gt; 2 hari tanpa konfirmasi ke pemilik mobil.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-red-400">•</span>
+                  <span><strong>Nihil Early Warning:</strong> Tidak ada alarm aktif yang menegur jika ada part tertahan.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="mt-4 pt-2 border-t border-white/10 text-xs font-bold text-red-400">
+              Titik Kritis: Ketiadaan Alarm H+2
+            </div>
+          </div>
+
+          <!-- Area 3: Manajemen -->
+          <div class="bg-slate-900/70 border border-emerald-500/30 rounded-xl p-4 flex flex-col justify-between">
+            <div>
+              <div class="w-9 h-9 rounded-lg bg-emerald-600/30 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-black text-base mb-3">
+                03
+              </div>
+              <h3 class="text-sm font-extrabold text-emerald-300 mb-1">ASPEK REKAPITULASI</h3>
+              <div class="text-xs text-slate-400 font-semibold mb-3">Tanggung Jawab: Kepala Bengkel</div>
+              <ul class="space-y-2 text-xs text-slate-300">
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-400">•</span>
+                  <span><strong>Sulit Monitor Harian:</strong> Angka penjualan part SOP baru diketahui di akhir bulan.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-400">•</span>
+                  <span><strong>Rawan Selisih Data:</strong> Hitung manual rentan salah penjumlahan total rupiah suku cadang.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-400">•</span>
+                  <span><strong>Respon Manajemen Lambat:</strong> KaBeng terlambat mengintervensi jika ada part menggantung.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="mt-4 pt-2 border-t border-white/10 text-xs font-bold text-emerald-400">
+              Titik Kritis: Visibilitas Revenue
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
+          <span>Kesimpulan: Dibutuhkan solusi terintegrasi yang menjembatani ketiga peran tersebut secara otomatis.</span>
+          <span class="text-white font-bold">Toyota Business Practice Step 2</span>
+        </div>
+      </div>
+
+      <!-- ==================== SLIDE 4: LANGKAH 3 ==================== -->
+      <div class="slide" id="slide-4">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center gap-3">
+            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 3</span>
+            <h2 class="text-xl font-black text-white">SET THE TARGET (MENETAPKAN TARGET)</h2>
+          </div>
+          <div class="text-xs text-slate-400 font-semibold">Sasaran Terukur (SMART Target)</div>
+        </div>
+
+        <div class="flex flex-col gap-4 my-auto py-2">
+          <!-- Target 1 -->
+          <div class="bg-gradient-to-r from-red-950/40 via-slate-900/80 to-slate-900/60 border-l-4 border-l-red-500 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+            <div class="max-w-3xl">
+              <div class="flex items-center gap-2 text-red-400 font-extrabold text-sm mb-1">
+                <span>🎯 TARGET 1:</span> LEAD TIME FOLLOW UP PART LENGKAP &le; 2 HARI
+              </div>
+              <p class="text-xs md:text-sm text-slate-300">
+                100% unit kendaraan yang status seluruh part-nya sudah tiba lengkap di gudang (ATA) <strong>WAJIB di-follow up oleh SA maksimal H+2</strong> untuk mencegah part menginap lama di rak bengkel.
+              </p>
+            </div>
+            <div class="text-right pl-4">
+              <span class="text-2xl font-black text-red-400">&le; 2 Hari</span>
+              <div class="text-[11px] text-slate-400 font-semibold">Maksimal Respon</div>
+            </div>
+          </div>
+
+          <!-- Target 2 -->
+          <div class="bg-gradient-to-r from-blue-950/40 via-slate-900/80 to-slate-900/60 border-l-4 border-l-blue-500 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+            <div class="max-w-3xl">
+              <div class="flex items-center gap-2 text-blue-400 font-extrabold text-sm mb-1">
+                <span>🎯 TARGET 2:</span> ZERO RE-TYPING &amp; 100% DISTRIBUSI ORDER OTOMATIS
+              </div>
+              <p class="text-xs md:text-sm text-slate-300">
+                Partman <strong>cukup 1x input Form Order</strong>; sistem secara otomatis menyalurkan data multi-item part ke sheet monitoring masing-masing SA secara instan tanpa ketik ulang manual.
+              </p>
+            </div>
+            <div class="text-right pl-4">
+              <span class="text-2xl font-black text-blue-400">1-Click</span>
+              <div class="text-[11px] text-slate-400 font-semibold">Auto-Dispatch</div>
+            </div>
+          </div>
+
+          <!-- Target 3 -->
+          <div class="bg-gradient-to-r from-emerald-950/40 via-slate-900/80 to-slate-900/60 border-l-4 border-l-emerald-500 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+            <div class="max-w-3xl">
+              <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-sm mb-1">
+                <span>🎯 TARGET 3:</span> 100% VISIBILITAS PART REVENUE &amp; JOB DONE REAL-TIME
+              </div>
+              <p class="text-xs md:text-sm text-slate-300">
+                Menyediakan dashboard rekapitulasi Job Done harian yang menampilkan akumulasi nilai penjualan part SOP (Part Revenue) secara akurat tanpa perlu menunggu tutup buku bulanan.
+              </p>
+            </div>
+            <div class="text-right pl-4">
+              <span class="text-2xl font-black text-emerald-400">Real-Time</span>
+              <div class="text-[11px] text-slate-400 font-semibold">Transparan 100%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
+          <span>Target terukur ini menjadi kompas utama dalam merancang sistem penanggulangan digital.</span>
+          <span class="text-white font-bold">Toyota Business Practice Step 3</span>
+        </div>
+      </div>
+
+      <!-- ==================== SLIDE 5: LANGKAH 4 ==================== -->
+      <div class="slide" id="slide-5">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center gap-3">
+            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 4</span>
+            <h2 class="text-xl font-black text-white">ANALYZE ROOT CAUSE (ANALISIS AKAR MASALAH)</h2>
+          </div>
+          <div class="text-xs text-slate-400 font-semibold">Metode Analisis 5-Why (Mencari Sumber Masalah)</div>
+        </div>
+
+        <div class="flex flex-col gap-2.5 my-auto py-2">
+          <!-- Why 1 -->
+          <div class="bg-slate-900/70 border border-slate-700/60 rounded-lg px-4 py-2 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-3">
+              <span class="bg-slate-800 text-sky-400 font-black px-2 py-1 rounded text-[11px]">WHY 1</span>
+              <span class="text-slate-300">Mengapa part SOP menginap lama di rak gudang bengkel?</span>
+            </div>
+            <span class="text-white font-bold">Karena SA belum menghubungi konsumen untuk jadwal booking</span>
+          </div>
+
+          <!-- Why 2 -->
+          <div class="bg-slate-900/70 border border-slate-700/60 rounded-lg px-4 py-2 flex items-center justify-between text-xs ml-4">
+            <div class="flex items-center gap-3">
+              <span class="bg-slate-800 text-sky-400 font-black px-2 py-1 rounded text-[11px]">WHY 2</span>
+              <span class="text-slate-300">Mengapa SA belum menghubungi konsumen?</span>
+            </div>
+            <span class="text-white font-bold">Karena SA tidak sadar bahwa seluruh fisik part sudah tiba di rak</span>
+          </div>
+
+          <!-- Why 3 -->
+          <div class="bg-slate-900/70 border border-slate-700/60 rounded-lg px-4 py-2 flex items-center justify-between text-xs ml-8">
+            <div class="flex items-center gap-3">
+              <span class="bg-slate-800 text-sky-400 font-black px-2 py-1 rounded text-[11px]">WHY 3</span>
+              <span class="text-slate-300">Mengapa SA tidak sadar part sudah tiba (ATA)?</span>
+            </div>
+            <span class="text-white font-bold">Karena tidak ada alarm/notifikasi pengingat otomatis kedatangan part</span>
+          </div>
+
+          <!-- Why 4 -->
+          <div class="bg-slate-900/70 border border-slate-700/60 rounded-lg px-4 py-2 flex items-center justify-between text-xs ml-12">
+            <div class="flex items-center gap-3">
+              <span class="bg-slate-800 text-sky-400 font-black px-2 py-1 rounded text-[11px]">WHY 4</span>
+              <span class="text-slate-300">Mengapa tidak ada alarm pengingat otomatis?</span>
+            </div>
+            <span class="text-white font-bold">Karena monitoring masih manual via sheet terpisah satu per satu</span>
+          </div>
+
+          <!-- Root Cause -->
+          <div class="bg-gradient-to-r from-red-950/80 to-slate-900 border-2 border-red-500 rounded-xl p-3.5 flex items-center justify-between text-xs ml-16 shadow-lg">
+            <div class="flex items-center gap-3">
+              <span class="bg-red-600 text-white font-black px-2.5 py-1.5 rounded text-[11px]">ROOT CAUSE</span>
+              <span class="text-red-200 font-bold text-sm">
+                Ketiadaan platform monitoring terintegrasi yang memiliki Sistem Peringatan Dini (Early Warning System) otomatis.
+              </span>
+            </div>
+            <span class="bg-emerald-600/80 text-white text-[11px] font-black px-3 py-1.5 rounded-lg whitespace-nowrap">
+              SOLUSI: Multi-Tier Early Warning Web App
+            </span>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
+          <span>Akar masalah ditemukan: bukan pada kelalaian individu, melainkan ketiadaan sistem yang proaktif.</span>
+          <span class="text-white font-bold">Toyota Business Practice Step 4</span>
+        </div>
+      </div>
+
+      <!-- ==================== SLIDE 6: LANGKAH 5 ==================== -->
+      <div class="slide" id="slide-6">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center gap-3">
+            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 5</span>
+            <h2 class="text-xl font-black text-white">DEVELOP COUNTERMEASURES (PENANGGULANGAN)</h2>
+          </div>
+          <div class="text-xs text-slate-400 font-semibold">3 Pilar Penanggulangan Berbasis Multi-Tier Early Warning</div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4 my-auto py-3">
+          <!-- Solusi 1 -->
+          <div class="bg-slate-900/80 border border-blue-500/40 rounded-xl p-4 flex flex-col justify-between">
+            <div>
+              <div class="text-xs font-black text-blue-400 tracking-wider mb-1">PILAR 1: INPUT STREAMLINING</div>
+              <h3 class="text-base font-extrabold text-white mb-2">Form Order Digital</h3>
+              <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                Digitalisasi Form Order SOP multi-item part. Partman cukup mengisi form sekali, sistem langsung mengalirkan data ke sheet SA tujuan (AJS, AYU, FIK, WBN, OTHER).
+              </p>
+              <ul class="text-[11px] text-blue-200 space-y-1">
+                <li>• Validasi pelat nomor polisi resmi</li>
+                <li>• Otomatisasi rumus harga &amp; subtotal</li>
+                <li>• Cetak SOP Lembar 1 &amp; 2 resmi instan</li>
+              </ul>
+            </div>
+            <div class="mt-3 pt-2 border-t border-white/10 text-[11px] font-bold text-blue-400">
+              Manfaat: Menghemat 90% Waktu Partman
+            </div>
+          </div>
+
+          <!-- Solusi 2 -->
+          <div class="bg-slate-900/80 border-2 border-red-500/60 rounded-xl p-4 flex flex-col justify-between shadow-lg">
+            <div>
+              <div class="text-xs font-black text-red-400 tracking-wider mb-1">PILAR 2: POKA-YOKE SISTEM</div>
+              <h3 class="text-base font-extrabold text-white mb-2">3-Tier Early Warning</h3>
+              <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                Sistem peringatan dini bertingkat untuk memastikan tidak ada part yang terbengkalai tanpa tindak lanjut:
+              </p>
+              <ul class="text-[11px] text-red-200 space-y-1.5">
+                <li class="bg-red-950/60 p-1.5 rounded border border-red-500/30">
+                  <strong>🚨 Lapis 1 (H+2 Part Lengkap):</strong> Pop-up otomatis jika part sudah lengkap &ge; 2 hari belum ada FU 1.
+                </li>
+                <li class="bg-amber-950/60 p-1.5 rounded border border-amber-500/30 text-amber-200">
+                  <strong>⏰ Lapis 2 (H+7 Follow-Up 2):</strong> Pop-up pengingat tindak lanjut kedua.
+                </li>
+                <li class="bg-slate-950/60 p-1.5 rounded border border-slate-700 text-slate-200">
+                  <strong>📧 Lapis 3 (Eskalasi KaBeng):</strong> Notifikasi email resmi otomatis.
+                </li>
+              </ul>
+            </div>
+            <div class="mt-3 pt-2 border-t border-white/10 text-[11px] font-bold text-red-400">
+              Manfaat: Menjamin Respon Maksimal H+2
+            </div>
+          </div>
+
+          <!-- Solusi 3 -->
+          <div class="bg-slate-900/80 border border-emerald-500/40 rounded-xl p-4 flex flex-col justify-between">
+            <div>
+              <div class="text-xs font-black text-emerald-400 tracking-wider mb-1">PILAR 3: VISIBILITAS KINERJA</div>
+              <h3 class="text-base font-extrabold text-white mb-2">Rekapan Part Revenue</h3>
+              <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                Modul pelaporan Job Done dan analisis pendapatan penjualan suku cadang secara real-time tanpa mencampur aduk biaya jasa.
+              </p>
+              <ul class="text-[11px] text-emerald-200 space-y-1">
+                <li>• Filter dinamis per bulan/tahun &amp; SA</li>
+                <li>• Ringkasan unit selesai &amp; total rupiah part</li>
+                <li>• Modal 'Lihat Part Lengkap' interaktif</li>
+              </ul>
+            </div>
+            <div class="mt-3 pt-2 border-t border-white/10 text-[11px] font-bold text-emerald-400">
+              Manfaat: Kontrol Omset Part Transparan
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
+          <span>Kombinasi 3 pilar ini menyelesaikan masalah hulu (order) hingga hilir (revenue).</span>
+          <span class="text-white font-bold">Toyota Business Practice Step 5</span>
+        </div>
+      </div>
+
+      <!-- ==================== SLIDE 7: LANGKAH 6 ==================== -->
+      <div class="slide" id="slide-7">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center gap-3">
+            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 6</span>
+            <h2 class="text-xl font-black text-white">SEE COUNTERMEASURES THROUGH (PELAKSANAAN)</h2>
+          </div>
+          <div class="text-xs text-slate-400 font-semibold">Implementasi Nyata Sistem di Agung Toyota Gianyar</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 my-auto py-2">
+          <!-- Fitur 1 -->
+          <div class="bg-slate-900/80 border border-white/10 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-extrabold text-sky-400">1. FORM ORDER &amp; AUTO-ROUTING</span>
+              <span class="text-[10px] bg-sky-950 text-sky-300 px-2 py-0.5 rounded border border-sky-800">Partman Module</span>
+            </div>
+            <p class="text-xs text-slate-300 mb-2">
+              Input nomor polisi, SA, tanggal order, dan multi-item part. Begitu klik <em>'Kirim ke Monitoring'</em>, script Google Apps Script API langsung menempatkan data di baris sheet SA terkait.
+            </p>
+            <div class="bg-slate-950 p-2 rounded border border-slate-800 text-[11px] text-slate-400 font-mono">
+              Status: Live &bull; Terhubung ke Spreadsheet Form Order &amp; Monitoring
+            </div>
+          </div>
+
+          <!-- Fitur 2 -->
+          <div class="bg-slate-900/80 border border-red-500/40 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-extrabold text-red-400">2. POP-UP EARLY WARNING H+2</span>
+              <span class="text-[10px] bg-red-950 text-red-300 px-2 py-0.5 rounded border border-red-800">Poka-Yoke Module</span>
+            </div>
+            <p class="text-xs text-slate-300 mb-2">
+              Muncul otomatis jika unit lengkap &ge; 2 hari belum di-follow up. Dilengkapi form <strong>Quick Input</strong> agar SA bisa langsung mencatat hasil konfirmasi konsumen dari dalam pop-up.
+            </p>
+            <div class="bg-slate-950 p-2 rounded border border-slate-800 text-[11px] text-red-300 font-mono">
+              Badge: 🚨 X PART LENGKAP (H+2) di Navbar Atas
+            </div>
+          </div>
+
+          <!-- Fitur 3 -->
+          <div class="bg-slate-900/80 border border-white/10 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-extrabold text-amber-400">3. MONITORING SA &amp; USIA PART</span>
+              <span class="text-[10px] bg-amber-950 text-amber-300 px-2 py-0.5 rounded border border-amber-800">SA Module</span>
+            </div>
+            <p class="text-xs text-slate-300 mb-2">
+              Kartu interaktif per Nopol yang menampilkan badge visual kedatangan part: <em>'Semua Part Datang (ATA: DD Mmm • Usia: X Hari)'</em>, update NEW ETA, serta input Follow Up 1, 2, 3.
+            </p>
+            <div class="bg-slate-950 p-2 rounded border border-slate-800 text-[11px] text-slate-400 font-mono">
+              Filter SA: AJS, AYU, FIK, WBN, OTHER
+            </div>
+          </div>
+
+          <!-- Fitur 4 -->
+          <div class="bg-slate-900/80 border border-emerald-500/40 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-extrabold text-emerald-400">4. REKAPAN JOB DONE &amp; PART REVENUE</span>
+              <span class="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800">Executive Report</span>
+            </div>
+            <p class="text-xs text-slate-300 mb-2">
+              Menghitung total unit selesai dan total omset part murni di bulan berjalan. Dilengkapi tombol <em>'👁️ Lihat Part Lengkap'</em> untuk melihat rincian suku cadang tanpa memadati layar.
+            </p>
+            <div class="bg-slate-950 p-2 rounded border border-slate-800 text-[11px] text-emerald-300 font-mono">
+              Penyaringan Cerdas: Banner Bulan &amp; Header disaring otomatis
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
+          <span>Aplikasi telah diuji coba dan digunakan secara nyata dalam operasional harian bengkel.</span>
+          <span class="text-white font-bold">Toyota Business Practice Step 6</span>
+        </div>
+      </div>
+
+      <!-- ==================== SLIDE 8: LANGKAH 7 ==================== -->
+      <div class="slide" id="slide-8">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center gap-3">
+            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 7</span>
+            <h2 class="text-xl font-black text-white">EVALUATE RESULTS &amp; PROCESSES (EVALUASI)</h2>
+          </div>
+          <div class="text-xs text-slate-400 font-semibold">Hasil Terukur: Perbandingan Sebelum vs Sesudah Kaizen</div>
+        </div>
+
+        <div class="my-auto py-2">
+          <div class="overflow-hidden border border-white/10 rounded-xl mb-4">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-900 text-slate-300 border-b border-white/10">
+                  <th class="p-3 font-extrabold text-sky-400 w-1/4">PARAMETER EVALUASI</th>
+                  <th class="p-3 font-extrabold text-red-400 w-3/8">SEBELUM KAIZEN (BEFORE)</th>
+                  <th class="p-3 font-extrabold text-emerald-400 w-3/8">SESUDAH KAIZEN (AFTER)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5 text-slate-200">
+                <tr class="bg-slate-950/40">
+                  <td class="p-2.5 font-bold text-white">Proses Input Partman</td>
+                  <td class="p-2.5 text-red-300">Ketik ulang manual per baris; butuh 10-15 menit per pesanan.</td>
+                  <td class="p-2.5 text-emerald-300 font-semibold">1-Click otomatis terkirim ke sheet SA dalam 2 detik (Efisiensi 90%).</td>
+                </tr>
+                <tr class="bg-slate-900/40">
+                  <td class="p-2.5 font-bold text-white">Kecepatan Respon SA</td>
+                  <td class="p-2.5 text-red-300">Sering terlambat/lupa; part menginap berhari-hari di rak bengkel.</td>
+                  <td class="p-2.5 text-emerald-300 font-semibold">Pop-Up H+2 proaktif mengingatkan SA saat part lengkap tiba.</td>
+                </tr>
+                <tr class="bg-slate-950/40">
+                  <td class="p-2.5 font-bold text-white">Pengawasan Manajemen</td>
+                  <td class="p-2.5 text-red-300">Pasif; tidak ada notifikasi eskalasi part tertunda.</td>
+                  <td class="p-2.5 text-emerald-300 font-semibold">Email reminder otomatis H+7 ke SA dan CC Kepala Bengkel.</td>
+                </tr>
+                <tr class="bg-slate-900/40">
+                  <td class="p-2.5 font-bold text-white">Rekapitulasi Part Revenue</td>
+                  <td class="p-2.5 text-red-300">Manual di akhir bulan; rawan selisih dan lambat dianalisis.</td>
+                  <td class="p-2.5 text-emerald-300 font-semibold">Dashboard Job Done real-time menyajikan total rupiah seketika.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Cost Efficiency Box -->
+          <div class="bg-blue-950/30 border border-blue-500/30 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-blue-400 font-black">COST BENEFIT:</span>
+              <span class="text-slate-300">Biaya Investasi Pengembangan Software = <strong>Rp 0,-</strong> (Memanfaatkan Google Workspace &amp; Google Apps Script tanpa langganan vendor luar).</span>
+            </div>
+            <span class="text-emerald-400 font-extrabold">100% Zero Additional Cost</span>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
+          <span>Hasil menunjukkan perbaikan signifikan baik pada efisiensi kerja maupun pencegahan dead stock.</span>
+          <span class="text-white font-bold">Toyota Business Practice Step 7</span>
+        </div>
+      </div>
+
+      <!-- ==================== SLIDE 9: LANGKAH 8 ==================== -->
+      <div class="slide" id="slide-9">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center gap-3">
+            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 8</span>
+            <h2 class="text-xl font-black text-white">STANDARDIZE &amp; YOKOTEN (STANDARISASI &amp; REPLIKASI)</h2>
+          </div>
+          <div class="text-xs text-slate-400 font-semibold">Menjaga Keberlanjutan &amp; Peluang Penyebaran Inovasi</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-5 my-auto py-2">
+          <!-- Standarisasi -->
+          <div class="bg-slate-900/80 border border-blue-500/30 rounded-xl p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 text-blue-400 font-extrabold text-sm mb-3">
+                <span>📑</span> A. STANDARISASI PROSES (SOP BARU BENGKEL)
+              </div>
+              <ul class="space-y-3 text-xs md:text-sm text-slate-200">
+                <li class="flex items-start gap-2">
+                  <span class="text-blue-400 font-bold">1.</span>
+                  <span><strong>Standar Pemesanan:</strong> Seluruh pesanan SOP part wajib dibuat melalui Web App Monitoring untuk memastikan akurasi data &amp; auto-dispatch ke sheet SA.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-blue-400 font-bold">2.</span>
+                  <span><strong>Standar Respon H+2:</strong> Service Advisor wajib melakukan konfirmasi Follow Up 1 ke pemilik mobil maksimal 2 hari kerja setelah seluruh part lengkap tiba.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-blue-400 font-bold">3.</span>
+                  <span><strong>Standar Job Done:</strong> Penyelesaian part langsung diarsip dengan tanggal Job Done dan tercatat di Part Revenue bulanan.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="mt-4 pt-3 border-t border-white/10 text-xs font-bold text-blue-300">
+              Output: SOP Resmi Tertulis &bull; Standar Baku Agung Toyota Gianyar
+            </div>
+          </div>
+
+          <!-- Yokoten -->
+          <div class="bg-slate-900/80 border border-emerald-500/30 rounded-xl p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-sm mb-3">
+                <span>🌐</span> B. RENCANA YOKOTEN (REPLIKASI KE CABANG LAIN)
+              </div>
+              <ul class="space-y-3 text-xs md:text-sm text-slate-200">
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-400 font-bold">1.</span>
+                  <span><strong>Teknologi Cloud Tanpa Server Lokal:</strong> Aplikasi berbasis web statis &amp; Google Apps Script, sehingga cabang lain tidak perlu infrastruktur server khusus.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-400 font-bold">2.</span>
+                  <span><strong>Duplikasi Cepat ke Cabang Agung Toyota:</strong> Siap di-yokoten ke cabang wilayah Bali (Denpasar, Kuta, Tabanan, Singaraja) cukup dengan menghubungkan ID Spreadsheet cabang masing-masing.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-400 font-bold">3.</span>
+                  <span><strong>Best Practice Nasional:</strong> Menjadi percontohan Kaizen praktis bernilai tinggi untuk seluruh jaringan bengkel resmi Toyota di Indonesia.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="mt-4 pt-3 border-t border-white/10 text-xs font-bold text-emerald-300">
+              Skalabilitas: Sangat Mudah Direplikasi &bull; Zero Licensing Fee
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
+          <span>Inovasi yang sukses distandarisasi dan disebarluaskan adalah hakikat sejati dari Kaizen Toyota.</span>
+          <span class="text-white font-bold">Toyota Business Practice Step 8</span>
+        </div>
+      </div>
+
+      <!-- ==================== SLIDE 10: CLOSING & Q&A ==================== -->
+      <div class="slide" id="slide-10">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center gap-3">
+            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">PENUTUP</span>
+            <h2 class="text-xl font-black text-white">TERIMA KASIH (ARIGATOU GOZAIMASU)</h2>
+          </div>
+          <div class="text-xs text-slate-400 font-semibold">Agung Toyota Gianyar</div>
+        </div>
+
+        <div class="my-auto text-center py-6">
+          <div class="inline-block p-4 rounded-2xl bg-red-950/40 border border-red-500/30 mb-4">
+            <span class="text-4xl">🙏</span>
+          </div>
+          <h2 class="text-4xl md:text-5xl font-black text-white tracking-tight mb-3">
+            ARIGATOU GOZAIMASU
+          </h2>
+          <p class="text-lg text-blue-300 font-medium max-w-2xl mx-auto mb-6">
+            Komitmen Kami untuk Pelayanan Prima, Efisiensi Operasional, dan Kepuasan Pelanggan (Customer Delight)
+          </p>
+
+          <div class="inline-flex items-center gap-3 px-6 py-3 bg-amber-500/20 border-2 border-amber-500/40 rounded-xl text-amber-300 font-extrabold text-base shadow-lg">
+            <span>💬 SESI TANYA JAWAB (Q&amp;A)</span>
+          </div>
+
+          <div class="mt-6 text-xs text-slate-400 font-medium">
+            Presenter: <strong>Febri Rachmadani (Partman)</strong> &bull; PT Agung Automall Gianyar
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-3 border-t border-white/10 text-xs text-slate-400">
+          <div>Dealer People Contest &bull; Toyota Astra Motor (TAM)</div>
+          <div>Continuous Improvement &bull; Respect for People</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FLOATING NAVIGATION BAR -->
+  <div class="nav-bar fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900/95 border border-white/15 px-4 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-3 z-50">
+    <button type="button" id="prevBtn" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition disabled:opacity-30 disabled:pointer-events-none" title="Slide Sebelumnya (Panah Kiri)">
+      ◀
+    </button>
+    
+    <div class="flex items-center gap-2 font-mono text-xs px-2 text-slate-300">
+      <span id="currentSlideNum" class="text-white font-black text-sm">01</span>
+      <span class="text-slate-500">/</span>
+      <span id="totalSlideNum" class="text-slate-400">10</span>
+    </div>
+
+    <button type="button" id="nextBtn" class="p-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition disabled:opacity-30 disabled:pointer-events-none" title="Slide Berikutnya (Panah Kanan / Spasi)">
+      ▶
+    </button>
+
+    <div class="w-px h-5 bg-white/15 mx-1"></div>
+
+    <button type="button" id="printBtn" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-white text-xs font-bold transition flex items-center gap-1.5" title="Cetak atau Simpan sebagai PDF">
+      🖨️ <span class="hidden sm:inline">Cetak PDF</span>
+    </button>
+
+    <button type="button" id="fullscreenBtn" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5" title="Mode Layar Penuh (F11)">
+      ⛶ <span class="hidden sm:inline">Full Screen</span>
+    </button>
+  </div>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 10;
+
+    function showSlide(index) {
+      if (index < 1) index = 1;
+      if (index > totalSlides) index = totalSlides;
+      currentSlide = index;
+
+      document.querySelectorAll('.slide').forEach((el, idx) => {
+        el.classList.toggle('active', idx + 1 === currentSlide);
+      });
+
+      document.getElementById('currentSlideNum').textContent = String(currentSlide).padStart(2, '0');
+      document.getElementById('prevBtn').disabled = currentSlide === 1;
+      document.getElementById('nextBtn').disabled = currentSlide === totalSlides;
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => showSlide(currentSlide - 1));
+    document.getElementById('nextBtn').addEventListener('click', () => showSlide(currentSlide + 1));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        showSlide(currentSlide + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        showSlide(currentSlide - 1);
+      } else if (e.key === 'Home') {
+        showSlide(1);
+      } else if (e.key === 'End') {
+        showSlide(totalSlides);
+      }
+    });
+
+    document.getElementById('printBtn').addEventListener('click', () => {
+      window.print();
+    });
+
+    document.getElementById('fullscreenBtn').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+
+    showSlide(1);
+  </script>
+</body>
+</html>
