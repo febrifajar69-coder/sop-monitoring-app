@@ -562,12 +562,12 @@ $pCost = (P "COST &amp; RESOURCE EFFICIENCY: Biaya Investasi Rp 0,- (Memanfaatka
 $s8 += New-TextShape 111 "CostTxt" 762000 5638800 10668000 571500 $pCost "ctr"
 [System.IO.File]::WriteAllText((Join-Path $tempDir "ppt\slides\slide8.xml"), (Build-SlideXml $s8), [System.Text.Encoding]::UTF8)
 
-# --- SLIDE 9: STANDARDIZE & YOKOTEN ---
-$s9 = Get-HeaderShapes "STANDARDIZE &amp; YOKOTEN" "Menetapkan Standar Operasional Baru &amp; Peluang Replikasi ke Cabang Agung Toyota Lainnya"
+# --- SLIDE 9: STANDARDIZE SUCCESSFUL PROCESSES ---
+$s9 = Get-HeaderShapes "STANDARDIZE SUCCESSFUL PROCESSES" "Konsistensi Operasional &amp; Pengendalian Standar Mutu di Agung Toyota Gianyar"
 $wHalf = 5334000
 # Box Standarisasi
 $s9 += New-BoxShape 120 "Std" 571500 1676400 $wHalf 4686300 "18181B" "2563EB" 20000 8000
-$pStd = (P "A. STANDARISASI PROSES (SOP BARU)" 1500 1 "60A5FA" "l" 80000)
+$pStd = (P "A. STANDAR OPERASIONAL PROSEDUR (SOP BARU)" 1500 1 "60A5FA" "l" 80000)
 $pStd += (P "1. Standar Pemesanan Partman:" 1300 1 "93C5FD" "l" 40000)
 $pStd += (P "Seluruh pesanan SOP wajib diinput melalui Web App Monitoring untuk menjamin validitas data dan auto-dispatch ke sheet SA." 1200 0 "E2E8F0" "l" 100000 1)
 $pStd += (P "2. Standar Respon SA (Maksimal H+2):" 1300 1 "93C5FD" "l" 40000)
@@ -576,16 +576,16 @@ $pStd += (P "3. Standar Rekapitulasi Job Done:" 1300 1 "93C5FD" "l" 40000)
 $pStd += (P "Penyelesaian pesanan dicatat secara digital dengan tanggal Job Done dan verifikasi Part Revenue otomatis." 1200 0 "E2E8F0" "l" 0 1)
 $s9 += New-TextShape 121 "StdT" 800000 1905000 ($wHalf - 457200) 4200000 $pStd "t"
 
-# Box Yokoten
-$s9 += New-BoxShape 122 "Yoko" 6286500 1676400 $wHalf 4686300 "18181B" "10B981" 20000 8000
-$pYoko = (P "B. RENCANA YOKOTEN (REPLIKASI)" 1500 1 "34D399" "l" 80000)
-$pYoko += (P "1. Kemudahan Adopsi (High Scalability):" 1300 1 "A7F3D0" "l" 40000)
-$pYoko += (P "Sistem dibangun berbasis Web Cloud dan Google Apps Script sehingga dapat diterapkan di cabang lain tanpa instalasi server lokal." 1200 0 "E2E8F0" "l" 100000 1)
-$pYoko += (P "2. Peluang Duplikasi Cabang Agung Toyota:" 1300 1 "A7F3D0" "l" 40000)
-$pYoko += (P "Dapat segera di-yokoten ke cabang Agung Toyota wilayah Bali (Denpasar, Kuta, Tabanan, Singaraja) dan wilayah lainnya." 1200 0 "E2E8F0" "l" 100000 1)
-$pYoko += (P "3. Standar Nasional Dealer People Contest:" 1300 1 "A7F3D0" "l" 40000)
-$pYoko += (P "Menjadi contoh nyata inovasi Kaizen praktis bernilai tinggi untuk seluruh jaringan dealer Toyota di Indonesia." 1200 0 "E2E8F0" "l" 0 1)
-$s9 += New-TextShape 123 "YokoT" 6515000 1905000 ($wHalf - 457200) 4200000 $pYoko "t"
+# Box Kontrol & Keberlanjutan Internal
+$s9 += New-BoxShape 122 "Contr" 6286500 1676400 $wHalf 4686300 "18181B" "10B981" 20000 8000
+$pContr = (P "B. SISTEM KONTROL &amp; KEBERLANJUTAN" 1500 1 "34D399" "l" 80000)
+$pContr += (P "1. Disiplin Early Warning H+2:" 1300 1 "A7F3D0" "l" 40000)
+$pContr += (P "Pengecekan aktif pop-up notifikasi harian di web app agar tidak ada part lengkap yang tertahan > 2 hari di rak gudang." 1200 0 "E2E8F0" "l" 100000 1)
+$pContr += (P "2. Eskalasi Mingguan Bersama KaBeng:" 1300 1 "A7F3D0" "l" 40000)
+$pContr += (P "Review berkala status unit tertahan yang belum ada konfirmasi booking servis bersama Kepala Bengkel." 1200 0 "E2E8F0" "l" 100000 1)
+$pContr += (P "3. Rekonsiliasi &amp; Audit Fisik Rutin:" 1300 1 "A7F3D0" "l" 40000)
+$pContr += (P "Pencocokan fisik part di rak gudang dengan data monitoring web app secara periodik untuk menjaga akurasi 100%." 1200 0 "E2E8F0" "l" 0 1)
+$s9 += New-TextShape 123 "ContrT" 6515000 1905000 ($wHalf - 457200) 4200000 $pContr "t"
 [System.IO.File]::WriteAllText((Join-Path $tempDir "ppt\slides\slide9.xml"), (Build-SlideXml $s9), [System.Text.Encoding]::UTF8)
 
 # --- SLIDE 10: CLOSING & Q&A ---
