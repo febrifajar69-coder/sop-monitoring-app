@@ -51,13 +51,13 @@
       <div class="header-actions">
         <button
           type="button"
-          id="btnOpenNotFixModal"
+          id="btnOpenFu1Modal"
           class="btn btn-sm hidden"
-          onclick="openNotFixPopup(true)"
-          style="background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%);color:#fff;border:1.5px solid #fca5a5;box-shadow:0 0 12px rgba(230,0,18,0.55);"
-          title="Lihat daftar No. Polisi yang masih berstatus NOT FIX lebih dari 7 hari (H+7)"
+          onclick="openFu1ReminderPopup(true)"
+          style="background:linear-gradient(135deg,#e11d48 0%,#be123c 100%);color:#fff;border:1.5px solid #fecdd3;box-shadow:0 0 12px rgba(225,29,72,0.45);font-weight:800;"
+          title="Lihat daftar unit yang part-nya sudah LENGKAP >= H+2 namun belum ada Follow Up 1"
         >
-          ⚠️ <span id="notFixAlertCount">0</span> NOT FIX (H+7)
+          🚨 <span id="fu1AlertCount">0</span> PART LENGKAP (H+2)
         </button>
 
         <button
@@ -69,6 +69,17 @@
           title="Lihat daftar unit yang sudah >= H+7 sejak Follow Up 1 dan perlu Follow Up 2"
         >
           ⏰ <span id="fu2AlertCount">0</span> PERLU FU 2 (H+7)
+        </button>
+
+        <button
+          type="button"
+          id="btnOpenNotFixModal"
+          class="btn btn-sm hidden"
+          onclick="openNotFixPopup(true)"
+          style="background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%);color:#fff;border:1.5px solid #fca5a5;box-shadow:0 0 12px rgba(230,0,18,0.55);"
+          title="Lihat daftar No. Polisi yang masih berstatus NOT FIX lebih dari 7 hari (H+7)"
+        >
+          ⚠️ <span id="notFixAlertCount">0</span> NOT FIX (H+7)
         </button>
 
         <!-- TPOS User Greeting & Live Date (Sesuai Gambar 1) -->
@@ -1354,6 +1365,43 @@
         </button>
         <div style="display:flex;align-items:center;gap:0.55rem;">
           <button type="button" class="btn btn-primary btn-sm" style="background:#d97706;border-color:#b45309;" onclick="closeFu2Popup(false)">
+            Tutup Pop-Up
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POP-UP PERINGATAN H+2: PART LENGKAP BELUM FOLLOW UP 1 -->
+  <div id="fu1ReminderModal" class="modal-backdrop hidden no-print" onclick="if(event.target===this) closeFu1Popup(false)">
+    <div class="modal-box" style="max-width:820px;padding:0;overflow:hidden;border:2px solid #e11d48;box-shadow:0 24px 48px rgba(159,18,57,0.35);">
+      <!-- Header Pop-Up Gaya Crimson Alert -->
+      <div style="background:linear-gradient(115deg,#09090b 0%,#18181b 55%,#881337 88%,#e11d48 100%);color:#ffffff;padding:1.1rem 1.35rem;border-bottom:3px solid #e11d48;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">
+        <div>
+          <div style="display:flex;align-items:center;gap:0.55rem;font-size:1.05rem;font-weight:900;letter-spacing:0.01em;">
+            <span>🚨 PERINGATAN H+2: PART LENGKAP BELUM FOLLOW UP</span>
+          </div>
+          <div id="fu1ModalSubtitle" style="font-size:0.8rem;color:#fecdd3;margin-top:0.2rem;font-weight:600;">
+            Daftar unit yang seluruh suku cadangnya sudah tiba &ge; 2 hari di gudang namun belum di-follow up oleh SA.
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" style="background:rgba(255,255,255,0.12);color:#fff;border-color:rgba(255,255,255,0.3);" onclick="closeFu1Popup(false)">
+          ✕
+        </button>
+      </div>
+
+      <!-- Isi Daftar Kartu Order Perlu Follow Up 1 -->
+      <div id="fu1ModalList" style="padding:1.15rem 1.35rem;max-height:62vh;overflow-y:auto;background:#f4f5f8;display:flex;flex-direction:column;gap:0.85rem;">
+        <!-- Dirender secara dinamis oleh app.js -->
+      </div>
+
+      <!-- Footer Pop-Up -->
+      <div style="background:#18181b;color:#e4e4e7;padding:0.85rem 1.35rem;border-top:1px solid #27272a;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.65rem;">
+        <button type="button" class="btn btn-outline btn-sm" style="background:transparent;color:#fecdd3;border-color:#be123c;" onclick="closeFu1Popup(true)">
+          🔕 Ingatkan Lagi Besok
+        </button>
+        <div style="display:flex;align-items:center;gap:0.55rem;">
+          <button type="button" class="btn btn-primary btn-sm" style="background:#e11d48;border-color:#be123c;" onclick="closeFu1Popup(false)">
             Tutup Pop-Up
           </button>
         </div>

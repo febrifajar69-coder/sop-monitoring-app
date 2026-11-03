@@ -415,6 +415,7 @@ function switchMainTab(tab) {
     renderPrintSheets();
   } else if (tab === 'monitoring') {
     renderMonitoringList();
+    checkAndShowFu1ReminderPopup(false);
     checkAndShowNotFixPopup(false);
     checkAndShowFu2ReminderPopup(false);
   } else if (tab === 'kabeng_report') {
@@ -1429,6 +1430,7 @@ async function fetchAllMonitoringSheets(showNotification) {
           mergeLocalOrdersIntoSheets();
           updateSaTabBadges();
           renderMonitoringList();
+          checkAndShowFu1ReminderPopup(false);
           checkAndShowNotFixPopup(false);
           checkAndShowFu2ReminderPopup(false);
           STATE.isSyncing = false;
@@ -1453,6 +1455,7 @@ async function fetchAllMonitoringSheets(showNotification) {
     if (STATE.mainTab === 'kabeng_report') {
       renderKabengWeeklyReport();
     }
+    checkAndShowFu1ReminderPopup(false);
     checkAndShowNotFixPopup(false);
     checkAndShowFu2ReminderPopup(false);
     STATE.isSyncing = false;
@@ -2923,6 +2926,7 @@ async function cancelAndDeleteOrder(domPrefixOrSheetName, explicitNopol, explici
   } finally {
     updateSaTabBadges();
     renderMonitoringList();
+    if (typeof checkAndShowFu1ReminderPopup === 'function') checkAndShowFu1ReminderPopup(false);
     if (typeof checkAndShowNotFixPopup === 'function') checkAndShowNotFixPopup(false);
     if (typeof checkAndShowFu2ReminderPopup === 'function') checkAndShowFu2ReminderPopup(false);
   }
@@ -3547,6 +3551,11 @@ function checkAndShowNotFixPopup(forceOpen) {
   const todayKey = formatDateInput(new Date());
   const snoozedDate = localStorage.getItem('SOP_NOTFIX_SNOOZE_DATE') || '';
 
+  const fu1Modal = document.getElementById('fu1ReminderModal');
+  if (!forceOpen && fu1Modal && !fu1Modal.classList.contains('hidden')) {
+    return; // Beri prioritas pada pop-up part lengkap H+2 terlebih dahulu
+  }
+
   if (forceOpen || (!HAS_SHOWN_NOTFIX_POPUP_SESSION && snoozedDate !== todayKey)) {
     HAS_SHOWN_NOTFIX_POPUP_SESSION = true;
     openNotFixPopup(true);
@@ -3729,6 +3738,231 @@ async function quickCancelNotFixOrder(sheetName, nopol, rowNumbers) {
 
 /**
  * ============================================================================
+ * POP-UP PERINGATAN OTOMATIS H+2: PART LENGKAP BELUM FOLLOW UP 1
+ * ============================================================================
+ */
+let HAS_SHOWN_FU1_POPUP_SESSION = false;
+
+function getOverdueFu1Groups() {
+  const overdueList = [];
+  const sheets = (window.SOP_CONFIG && window.SOP_CONFIG.SA_SHEETS) || ['AJS', 'AYU', 'FIK', 'WBN', 'OTHER'];
+
+  sheets.forEach((sa) => {
+    const rawItems = STATE.monitoringBySheet[sa] || [];
+    const groups = groupMonitoringItemsByOrder(rawItems);
+    groups.forEach((grp) => {
+      // Syarat unit perlu Follow Up 1 (H+2 Part Lengkap):
+      // 1. Seluruh item part sudah tiba/lengkap (allItemsArrived === true)
+      // 2. Usia kedatangan part lengkap sudah >= 2 hari (ataAgeDays >= 2)
+      // 3. Follow Up 1 masih kosong / belum ada tindak lanjut
+      if (grp.allItemsArrived && grp.ataAgeDays >= 2 && (!grp.followUp1 || grp.followUp1.trim() === '')) {
+        overdueList.push(grp);
+      }
+    });
+  });
+
+  // Urutkan dari yang paling lama menginap di gudang (ataAgeDays terbesar di paling atas)
+  overdueList.sort((a, b) => (b.ataAgeDays || 0) - (a.ataAgeDays || 0));
+  return overdueList;
+}
+
+function checkAndShowFu1ReminderPopup(forceOpen) {
+  const overdueList = getOverdueFu1Groups();
+  const topBtn = document.getElementById('btnOpenFu1Modal');
+  const countEl = document.getElementById('fu1AlertCount');
+
+  if (countEl) countEl.textContent = String(overdueList.length);
+  if (topBtn) {
+    topBtn.classList.toggle('hidden', overdueList.length === 0);
+  }
+
+  if (overdueList.length === 0) {
+    const modal = document.getElementById('fu1ReminderModal');
+    if (modal) modal.classList.add('hidden');
+    return;
+  }
+
+  const todayKey = formatDateInput(new Date());
+  const snoozedDate = localStorage.getItem('SOP_FU1_SNOOZE_DATE') || '';
+
+  if (forceOpen || (!HAS_SHOWN_FU1_POPUP_SESSION && snoozedDate !== todayKey)) {
+    HAS_SHOWN_FU1_POPUP_SESSION = true;
+    openFu1ReminderPopup(false);
+  }
+}
+
+function openFu1ReminderPopup(forceRender) {
+  const overdueList = getOverdueFu1Groups();
+  const modal = document.getElementById('fu1ReminderModal');
+  const listEl = document.getElementById('fu1ModalList');
+  const subEl = document.getElementById('fu1ModalSubtitle');
+  if (!modal || !listEl) return;
+
+  if (overdueList.length === 0) {
+    modal.classList.add('hidden');
+    if (forceRender) {
+      showToast('🎉 Mantap! Tidak ada unit part lengkap yang tertunda Follow Up 1 (H+2).');
+    }
+    return;
+  }
+
+  if (subEl) {
+    subEl.innerHTML = `Terdapat <strong>${overdueList.length} No. Polisi</strong> yang part-nya sudah <strong>LENGKAP &ge; 2 hari (H+2)</strong> namun belum di-follow up oleh SA:`;
+  }
+
+  listEl.innerHTML = overdueList.map((grp, idx) => {
+    const safeSa = escapeHtml(grp.sheetName || 'SA');
+    const safeNopol = escapeHtml(grp.nopol);
+    const ataStr = grp.latestAtaDisplay || (grp.ata ? formatShortDayMonth(grp.ata) : 'Lengkap');
+    const ageDays = grp.ataAgeDays || 2;
+    const safeDomId = `fu1_pop_${grp.sheetName}_${escapeHtml(grp.nopol).replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const rowNumsJson = JSON.stringify(grp.rowNumbers || []);
+
+    const partSummary = grp.items
+      .slice(0, 3)
+      .map((it) => `${escapeHtml(it.partName)} (${it.qty}x)`)
+      .join(', ') + (grp.items.length > 3 ? ` +${grp.items.length - 3} lainnya` : '');
+
+    return `
+      <div style="background:#ffffff;border:1.5px solid #fecdd3;border-left:5px solid #e11d48;border-radius:10px;padding:0.95rem 1.15rem;box-shadow:0 3px 10px rgba(9,9,11,0.06);display:flex;flex-direction:column;gap:0.55rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+          <div style="display:flex;align-items:center;gap:0.55rem;flex-wrap:wrap;">
+            <span style="font-size:0.78rem;font-weight:900;color:#71717a;">#${idx + 1}</span>
+            <span class="nopol-badge" style="font-size:0.88rem;padding:0.25rem 0.65rem;">${safeNopol}</span>
+            <span style="font-size:0.75rem;font-weight:800;padding:0.22rem 0.55rem;border-radius:6px;background:#18181b;color:#ffffff;">
+              Sheet ${safeSa} (SA/PIC: ${escapeHtml(grp.saPic || grp.sheetName)})
+            </span>
+            <span style="font-size:0.75rem;font-weight:800;padding:0.22rem 0.55rem;border-radius:6px;background:#ffe4e6;color:#be123c;border:1px solid #fecdd3;">
+              🚨 Part Lengkap H+${ageDays} (ATA: ${ataStr})
+            </span>
+          </div>
+          <div style="font-size:0.82rem;font-weight:800;color:#09090b;">
+            ${grp.items.length} Item Part &bull; <span style="color:#e11d48;">${formatRupiah(grp.grandTotal)}</span>
+          </div>
+        </div>
+
+        <div style="font-size:0.8rem;color:#3f3f46;background:#f8fafc;padding:0.55rem 0.75rem;border-radius:6px;border:1px solid #e4e4e7;">
+          <div><strong>Daftar Item:</strong> ${partSummary}</div>
+          <div style="margin-top:0.25rem;color:#b91c1c;font-weight:700;">
+            ⚠️ Part sudah tiba sejak ${ataStr} (${ageDays} hari lalu) di rak bengkel. Segera konfirmasi ke pelanggan!
+          </div>
+        </div>
+
+        <div style="background:#fff1f2;border:1px solid #ffe4e6;padding:0.55rem 0.75rem;border-radius:6px;">
+          <div style="font-size:0.74rem;font-weight:800;color:#9f1239;margin-bottom:0.35rem;">
+            ✏️ Input Hasil Follow Up 1 Sekarang:
+          </div>
+          <div style="display:flex;gap:0.45rem;flex-wrap:wrap;">
+            <input
+              type="text"
+              id="${safeDomId}_input"
+              class="input input-sm input-uppercase"
+              style="flex:1;min-width:220px;border-color:#f43f5e;font-weight:700;"
+              placeholder="Contoh: SUDAH HUBUNGI / BOOKING KAMIS / DP OK / DLL"
+            />
+            <button
+              type="button"
+              id="${safeDomId}_btn"
+              class="btn btn-sm btn-primary"
+              style="background:#e11d48;border-color:#be123c;font-weight:800;white-space:nowrap;"
+              onclick='saveFu1FromPopup("${safeSa}", "${safeNopol}", ${rowNumsJson}, "${safeDomId}")'
+            >
+              💾 Simpan FU 1
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              style="font-size:0.75rem;font-weight:700;"
+              onclick='closeFu1Popup(false); focusNopolCard("${safeNopol}");'
+              title="Buka dan lihat kartu order ini di halaman utama"
+            >
+              🔍 Buka Kartu
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  modal.classList.remove('hidden');
+}
+
+function closeFu1Popup(snoozeForToday) {
+  const modal = document.getElementById('fu1ReminderModal');
+  if (modal) modal.classList.add('hidden');
+  if (snoozeForToday) {
+    localStorage.setItem('SOP_FU1_SNOOZE_DATE', formatDateInput(new Date()));
+    showToast('🔕 Pengingat Pop-Up Follow Up 1 H+2 dijeda hingga besok.');
+  }
+}
+
+async function saveFu1FromPopup(sheetName, nopol, rowNumbers, safeDomId) {
+  const inputEl = document.getElementById(`${safeDomId}_input`);
+  const btnEl = document.getElementById(`${safeDomId}_btn`);
+  if (!inputEl) return;
+  const fu1Val = (inputEl.value || '').trim().toUpperCase();
+  if (!fu1Val) {
+    showToast('⚠️ Mohon ketikkan hasil Follow Up 1 terlebih dahulu.', true);
+    inputEl.focus();
+    return;
+  }
+
+  const origBtnText = btnEl ? btnEl.innerHTML : '';
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = '⏳ Menyimpan...';
+  }
+
+  const todayIso = formatDateInput(new Date());
+
+  // Simpan ke local edits
+  const existingEdits = STATE.localFollowUpEdits[`${sheetName}-${nopol}`] || {};
+  existingEdits.fu1 = fu1Val;
+  existingEdits.fu1Date = todayIso;
+  STATE.localFollowUpEdits[`${sheetName}-${nopol}`] = existingEdits;
+  localStorage.setItem('SOP_LOCAL_FU_EDITS', JSON.stringify(STATE.localFollowUpEdits));
+
+  // Update item di memory
+  const sheetItems = STATE.monitoringBySheet[sheetName] || [];
+  sheetItems.forEach((it) => {
+    if (it.nopol === nopol) {
+      it.followUp1 = fu1Val;
+      it.fu1Date = todayIso;
+    }
+  });
+
+  // Kirim ke API Spreadsheet
+  try {
+    if (STATE.apiUrl) {
+      await fetch(STATE.apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'updateFollowUp',
+          sheetName: sheetName,
+          nopol: nopol,
+          rowNumber: rowNumbers[0],
+          rowNumbers: rowNumbers,
+          followUp1: fu1Val,
+          fu1Date: todayIso
+        })
+      });
+    }
+    showToast(`✅ Follow Up 1 untuk ${nopol} berhasil disimpan!`);
+  } catch (err) {
+    showToast(`✅ Tersimpan di perangkat lokal untuk ${nopol}.`);
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = origBtnText;
+    }
+    renderMonitoringList();
+    checkAndShowFu1ReminderPopup(false);
+  }
+}
+
+/**
+ * ============================================================================
  * POP-UP PERINGATAN OTOMATIS H+7 UNTUK FOLLOW UP KE-2
  * ============================================================================
  */
@@ -3790,6 +4024,11 @@ function checkAndShowFu2ReminderPopup(forceOpen) {
 
   const todayKey = formatDateInput(new Date());
   const snoozedDate = localStorage.getItem('SOP_FU2_SNOOZE_DATE') || '';
+
+  const fu1Modal = document.getElementById('fu1ReminderModal');
+  if (!forceOpen && fu1Modal && !fu1Modal.classList.contains('hidden')) {
+    return; // Beri prioritas pada pop-up part lengkap H+2 terlebih dahulu
+  }
 
   if (forceOpen || (!HAS_SHOWN_FU2_POPUP_SESSION && snoozedDate !== todayKey)) {
     HAS_SHOWN_FU2_POPUP_SESSION = true;
