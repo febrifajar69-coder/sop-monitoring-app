@@ -193,11 +193,11 @@
                 </li>
                 <li class="flex items-start gap-2">
                   <span class="text-red-400 font-bold">✕</span>
-                  <span><strong>Blind-Spot Kedatangan Part (ATA):</strong> SA tidak segera mengetahui bahwa fisik part sudah tiba di rak gudang karena tidak ada sistem notifikasi aktif.</span>
+                  <span><strong>Risiko Berkas Fisik Terselip:</strong> Mengandalkan lembaran form order kertas yang rawan terselip di meja SA; jika terselip, SA harus mencari &amp; mengecek manual baris per baris ke spreadsheet sehingga respon ke pelanggan terlambat.</span>
                 </li>
                 <li class="flex items-start gap-2">
                   <span class="text-red-400 font-bold">✕</span>
-                  <span><strong>Part Menginap Tanpa Kejelasan:</strong> Part yang sudah lengkap tiba tertahan berhari-hari di rak bengkel sebelum SA sempat menghubungi konsumen.</span>
+                  <span><strong>Part Menginap di Rak Gudang:</strong> Part yang sudah lengkap tiba tertahan berhari-hari di rak bengkel karena respon follow-up SA lambat tanpa adanya alarm pengingat aktif.</span>
                 </li>
                 <li class="flex items-start gap-2">
                   <span class="text-red-400 font-bold">✕</span>
@@ -266,20 +266,20 @@
               <ul class="space-y-2 text-xs text-slate-300">
                 <li class="flex items-start gap-1.5">
                   <span class="text-red-400">•</span>
-                  <span><strong>Blind-Spot Kedatangan (ATA):</strong> SA tidak tahu saat part sudah tiba di rak gudang kecuali cek fisik manual.</span>
+                  <span><strong>Risiko Berkas Fisik Terselip:</strong> Mengandalkan form order kertas dari Partman yang rawan terselip di tumpukan meja SA; jika terselip, SA harus mengecek manual satu per satu ke spreadsheet.</span>
                 </li>
                 <li class="flex items-start gap-1.5">
                   <span class="text-red-400">•</span>
-                  <span><strong>Follow-Up Terlambat:</strong> Part lengkap menginap &gt; 2 hari tanpa konfirmasi ke pemilik mobil.</span>
+                  <span><strong>Respon Follow-Up Lambat:</strong> Padatnya aktivitas pelayanan servis membuat SA lambat menghubungi pelanggan tanpa adanya pemicu / pengingat aktif.</span>
                 </li>
                 <li class="flex items-start gap-1.5">
                   <span class="text-red-400">•</span>
-                  <span><strong>Nihil Early Warning:</strong> Tidak ada alarm aktif yang menegur jika ada part tertahan.</span>
+                  <span><strong>Nihil Early Warning:</strong> Tidak ada sistem alarm / pop-up otomatis yang menegur SA jika part lengkap sudah menginap &gt; 2 hari di rak gudang.</span>
                 </li>
               </ul>
             </div>
             <div class="mt-4 pt-2 border-t border-white/10 text-xs font-bold text-red-400">
-              Titik Kritis: Ketiadaan Alarm H+2
+              Titik Kritis: Berkas Terselip &amp; Ketiadaan Alarm H+2
             </div>
           </div>
 
@@ -420,34 +420,34 @@
               <span class="bg-slate-800 text-sky-400 font-black px-2 py-1 rounded text-[11px]">WHY 1</span>
               <span class="text-slate-300">Mengapa part SOP menginap lama di rak gudang bengkel?</span>
             </div>
-            <span class="text-white font-bold">Karena SA belum menghubungi konsumen untuk jadwal booking</span>
+            <span class="text-white font-bold">Karena respon SA lambat menghubungi konsumen untuk jadwal booking</span>
           </div>
 
           <!-- Why 2 -->
           <div class="bg-slate-900/70 border border-slate-700/60 rounded-lg px-4 py-2 flex items-center justify-between text-xs ml-4">
             <div class="flex items-center gap-3">
               <span class="bg-slate-800 text-sky-400 font-black px-2 py-1 rounded text-[11px]">WHY 2</span>
-              <span class="text-slate-300">Mengapa SA belum menghubungi konsumen?</span>
+              <span class="text-slate-300">Mengapa respon SA lambat menghubungi konsumen?</span>
             </div>
-            <span class="text-white font-bold">Karena SA tidak sadar bahwa seluruh fisik part sudah tiba di rak</span>
+            <span class="text-white font-bold">Karena form fisik rawan terselip di meja SA di tengah padatnya counter</span>
           </div>
 
           <!-- Why 3 -->
           <div class="bg-slate-900/70 border border-slate-700/60 rounded-lg px-4 py-2 flex items-center justify-between text-xs ml-8">
             <div class="flex items-center gap-3">
               <span class="bg-slate-800 text-sky-400 font-black px-2 py-1 rounded text-[11px]">WHY 3</span>
-              <span class="text-slate-300">Mengapa SA tidak sadar part sudah tiba (ATA)?</span>
+              <span class="text-slate-300">Mengapa jika form terselip SA tidak segera menindaklanjuti?</span>
             </div>
-            <span class="text-white font-bold">Karena tidak ada alarm/notifikasi pengingat otomatis kedatangan part</span>
+            <span class="text-white font-bold">Karena SA harus mengecek manual spreadsheet tanpa adanya alarm pengingat aktif</span>
           </div>
 
           <!-- Why 4 -->
           <div class="bg-slate-900/70 border border-slate-700/60 rounded-lg px-4 py-2 flex items-center justify-between text-xs ml-12">
             <div class="flex items-center gap-3">
               <span class="bg-slate-800 text-sky-400 font-black px-2 py-1 rounded text-[11px]">WHY 4</span>
-              <span class="text-slate-300">Mengapa tidak ada alarm pengingat otomatis?</span>
+              <span class="text-slate-300">Mengapa tidak ada alarm pengingat otomatis di sistem?</span>
             </div>
-            <span class="text-white font-bold">Karena monitoring masih manual via sheet terpisah satu per satu</span>
+            <span class="text-white font-bold">Karena monitoring masih mengandalkan form fisik &amp; sheet terpisah</span>
           </div>
 
           <!-- Root Cause -->
@@ -455,7 +455,7 @@
             <div class="flex items-center gap-3">
               <span class="bg-red-600 text-white font-black px-2.5 py-1.5 rounded text-[11px]">ROOT CAUSE</span>
               <span class="text-red-200 font-bold text-sm">
-                Ketiadaan platform monitoring terintegrasi yang memiliki Sistem Peringatan Dini (Early Warning System) otomatis.
+                Ketiadaan platform monitoring terintegrasi yang memiliki Sistem Peringatan Dini (Early Warning / Pop-Up H+2) otomatis.
               </span>
             </div>
             <span class="bg-emerald-600/80 text-white text-[11px] font-black px-3 py-1.5 rounded-lg whitespace-nowrap">
