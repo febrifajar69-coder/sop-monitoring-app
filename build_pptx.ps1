@@ -594,11 +594,10 @@ $s10 += New-BoxShape 130 "TopAccent" 0 0 12192000 95250 "E60012" ""
 $s10 += New-BoxShape 131 "BgCard" 1524000 952500 9144000 4953000 "0B2341" "1E3A8A" 25400 12000
 $s10 += New-BoxShape 132 "RedLine" 2286000 1752600 1524000 57150 "E60012" ""
 
-$pClose = (P "TERIMA KASIH" 3600 1 "FFFFFF" "ctr" 80000)
-$pClose += (P "ARIGATOU GOZAIMASU" 1800 1 "E60012" "ctr" 180000)
-$pClose += (P "Komitmen Kami untuk Pelayanan Prima, Efisiensi Operasional, dan Kepuasan Pelanggan (Customer Delight)" 1450 0 "93C5FD" "ctr" 220000)
-$pClose += (P "SESI TANYA JAWAB (Q&amp;A)" 2000 1 "FBBF24" "ctr" 120000)
-$pClose += (P "PT AGUNG AUTOMALL GIANYAR (AGUNG TOYOTA GIANYAR)" 1300 1 "FFFFFF" "ctr" 0)
+$pClose = (P "TERIMA KASIH" 3600 1 "FFFFFF" "ctr" 120000)
+$pClose += (P "ARIGATOU GOZAIMASU" 2000 1 "E60012" "ctr" 240000)
+$pClose += (P "SESI TANYA JAWAB (Q&amp;A)" 2200 1 "FBBF24" "ctr" 140000)
+$pClose += (P "PT AGUNG AUTOMALL GIANYAR (AGUNG TOYOTA GIANYAR)" 1300 1 "94A3B8" "ctr" 0)
 $s10 += New-TextShape 133 "CloseTxt" 2000000 2000000 8192000 3500000 $pClose "ctr"
 [System.IO.File]::WriteAllText((Join-Path $tempDir "ppt\slides\slide10.xml"), (Build-SlideXml $s10), [System.Text.Encoding]::UTF8)
 
