@@ -147,88 +147,81 @@
         </div>
       </div>
 
-      <!-- ==================== SLIDE 2: LANGKAH 1 ==================== -->
+      <!-- ==================== SLIDE 2: CLARIFY THE PROBLEM ==================== -->
       <div class="slide" id="slide-2">
         <div class="flex items-center justify-between border-b border-white/10 pb-3">
           <div class="flex items-center gap-3">
-            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 1</span>
-            <h2 class="text-xl font-black text-white">CLARIFY THE PROBLEM (MEMPERJELAS MASALAH)</h2>
+            <h2 class="text-xl font-black text-white">CLARIFY THE PROBLEM</h2>
           </div>
-          <div class="text-xs text-slate-400 font-semibold">Situasi Ideal vs Aktual Lapangan</div>
+          <div class="text-xs text-slate-400 font-semibold">Identifikasi Masalah &amp; Situasi Aktual Lapangan</div>
         </div>
 
         <div class="grid grid-cols-2 gap-5 my-auto py-2">
-          <!-- Kondisi Ideal -->
-          <div class="bg-emerald-950/20 border-2 border-emerald-500/40 rounded-xl p-5 flex flex-col justify-between">
+          <!-- Kolom Kiri: Latar Belakang Alur SOP -->
+          <div class="bg-slate-900/70 border border-blue-500/30 rounded-xl p-5 flex flex-col justify-between">
             <div>
-              <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-sm mb-3">
-                <span class="text-lg">🎯</span> KONDISI IDEAL (TARGET BENGKEL)
+              <div class="flex items-center gap-2 text-blue-400 font-extrabold text-sm mb-3">
+                <span class="text-lg">📋</span> LATAR BELAKANG PROSES SOP
               </div>
-              <ul class="space-y-3 text-xs md:text-sm text-slate-200">
-                <li class="flex items-start gap-2">
-                  <span class="text-emerald-400 font-bold">✓</span>
-                  <span><strong>Distribusi Order Otomatis:</strong> Permintaan SOP dari SA langsung terhubung ke gudang tanpa ketik ulang berulang kali.</span>
-                </li>
-                <li class="flex items-start gap-2">
-                  <span class="text-emerald-400 font-bold">✓</span>
-                  <span><strong>Zero Dead-Stock:</strong> Begitu fisik part tiba (ATA), SA langsung menindaklanjuti ke konsumen sehingga lead time penyerapan part minimal.</span>
-                </li>
-                <li class="flex items-start gap-2">
-                  <span class="text-emerald-400 font-bold">✓</span>
-                  <span><strong>Visibilitas Part Revenue:</strong> Nilai penjualan part SOP harian dan bulanan terpantau transparan dan terukur seketika.</span>
-                </li>
-              </ul>
+              <p class="text-xs md:text-sm text-slate-300 leading-relaxed mb-4">
+                Special Order Part (SOP) adalah layanan pemesanan suku cadang khusus pelanggan yang membutuhkan koordinasi intensif antara <strong>Partman (Gudang)</strong>, <strong>Service Advisor (Frontliner)</strong>, dan <strong>Pelanggan Bengkel</strong>.
+              </p>
+              <div class="space-y-2.5 text-xs text-slate-300">
+                <div class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800">
+                  <strong class="text-blue-300">Alur Operasional:</strong> Permintaan order dari SA &rarr; Partman input Form Order &rarr; Tunggu kedatangan part dari Depo &rarr; Part tiba di rak (ATA) &rarr; SA hubungi konsumen &rarr; Pemasangan part.
+                </div>
+                <div class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800">
+                  <strong class="text-blue-300">Urgensi Penanganan:</strong> Setiap keterlambatan follow-up berdampak langsung pada penumpukan barang di rak gudang (holding cost) dan keluhan pelanggan.
+                </div>
+              </div>
             </div>
-            <div class="mt-4 pt-3 border-t border-emerald-500/20 text-xs font-bold text-emerald-300">
-              Output: Pelayanan Cepat &bull; Part Terpasang &bull; Customer Delight
+            <div class="mt-4 pt-3 border-t border-white/10 text-xs font-bold text-blue-400">
+              Fokus: Mengurai Hambatan Operasional di Setiap Titik Alur
             </div>
           </div>
 
-          <!-- Kondisi Aktual -->
+          <!-- Kolom Kanan: Masalah Nyata di Lapangan -->
           <div class="bg-red-950/20 border-2 border-red-500/40 rounded-xl p-5 flex flex-col justify-between">
             <div>
               <div class="flex items-center gap-2 text-red-400 font-extrabold text-sm mb-3">
-                <span class="text-lg">⚠️</span> KONDISI AKTUAL (SEBELUM KAIZEN)
+                <span class="text-lg">⚠️</span> MASALAH OPERASIONAL DI LAPANGAN
               </div>
               <ul class="space-y-3 text-xs md:text-sm text-slate-200">
                 <li class="flex items-start gap-2">
                   <span class="text-red-400 font-bold">✕</span>
-                  <span><strong>Beban Partman Manual:</strong> Partman harus memindahkan data multi-item part secara manual ke sheet masing-masing SA.</span>
+                  <span><strong>Beban Input Manual Partman:</strong> Partman harus membuat Form Order fisik lalu mengetik ulang data baris per baris ke sheet masing-masing SA secara manual.</span>
                 </li>
                 <li class="flex items-start gap-2">
                   <span class="text-red-400 font-bold">✕</span>
-                  <span><strong>Part Menginap di Rak:</strong> SA tidak sadar part sudah datang (ATA) karena tidak ada alarm pengingat otomatis. Part menginap berhari-hari.</span>
+                  <span><strong>Blind-Spot Kedatangan Part (ATA):</strong> SA tidak segera mengetahui bahwa fisik part sudah tiba di rak gudang karena tidak ada sistem notifikasi aktif.</span>
                 </li>
                 <li class="flex items-start gap-2">
                   <span class="text-red-400 font-bold">✕</span>
-                  <span><strong>Rekapitulasi Manual:</strong> Rekapan Job Done dan nilai rupiah part baru bisa dihitung manual saat tutup buku akhir bulan.</span>
+                  <span><strong>Part Menginap Tanpa Kejelasan:</strong> Part yang sudah lengkap tiba tertahan berhari-hari di rak bengkel sebelum SA sempat menghubungi konsumen.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-red-400 font-bold">✕</span>
+                  <span><strong>Rekapitulasi Manual &amp; Terlambat:</strong> Rekapan Job Done dan akumulasi nilai rupiah penjualan part hanya bisa dihitung di akhir bulan secara manual.</span>
                 </li>
               </ul>
             </div>
             <div class="mt-4 pt-3 border-t border-red-500/20 text-xs font-bold text-red-300">
-              Dampak: Administrasi Lambat &bull; Risiko Holding Cost &bull; Respon Pelanggan Terlambat
+              Dampak: Efisiensi Rendah &bull; Risiko Holding Cost &bull; Respon Konsumen Lambat
             </div>
           </div>
         </div>
 
-        <!-- The Gap -->
-        <div class="bg-slate-900/80 border border-sky-500/30 rounded-xl px-5 py-3 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="text-sky-400 font-black text-sm uppercase tracking-wider">THE GAP:</span>
-            <span class="text-xs md:text-sm text-sky-100 font-medium">
-              Ketiadaan platform terintegrasi real-time antara Partman &amp; SA, serta ketiadaan Sistem Peringatan Dini (Early Warning) otomatis saat part tiba di gudang.
-            </span>
-          </div>
-          <span class="text-xs text-sky-400 font-bold hidden md:inline-block">Kesenjangan Masalah</span>
+        <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
+          <span>Identifikasi masalah dilakukan secara faktual berdasarkan alur operasional harian bengkel.</span>
+          <span class="text-white font-bold">Agung Toyota Gianyar</span>
         </div>
       </div>
 
-      <!-- ==================== SLIDE 3: LANGKAH 2 ==================== -->
+      <!-- ==================== SLIDE 3: BREAKDOWN THE PROBLEM ==================== -->
       <div class="slide" id="slide-3">
         <div class="flex items-center justify-between border-b border-white/10 pb-3">
           <div class="flex items-center gap-3">
-            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 2</span>
-            <h2 class="text-xl font-black text-white">BREAKDOWN THE PROBLEM (MEMECAH MASALAH)</h2>
+            <h2 class="text-xl font-black text-white">BREAKDOWN THE PROBLEM</h2>
           </div>
           <div class="text-xs text-slate-400 font-semibold">Analisis 3 Area Kritis (Partman • SA • Manajemen)</div>
         </div>
@@ -320,83 +313,102 @@
         </div>
 
         <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
-          <span>Kesimpulan: Dibutuhkan solusi terintegrasi yang menjembatani ketiga peran tersebut secara otomatis.</span>
-          <span class="text-white font-bold">Toyota Business Practice Step 2</span>
+          <span>Dibutuhkan solusi terintegrasi yang menjembatani ketiga peran tersebut secara otomatis.</span>
+          <span class="text-white font-bold">Agung Toyota Gianyar</span>
         </div>
       </div>
 
-      <!-- ==================== SLIDE 4: LANGKAH 3 ==================== -->
+      <!-- ==================== SLIDE 4: SET THE TARGET ==================== -->
       <div class="slide" id="slide-4">
         <div class="flex items-center justify-between border-b border-white/10 pb-3">
           <div class="flex items-center gap-3">
-            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 3</span>
-            <h2 class="text-xl font-black text-white">SET THE TARGET (MENETAPKAN TARGET)</h2>
+            <h2 class="text-xl font-black text-white">SET THE TARGET</h2>
           </div>
-          <div class="text-xs text-slate-400 font-semibold">Sasaran Terukur (SMART Target)</div>
+          <div class="text-xs text-slate-400 font-semibold">Kondisi Ideal, Kesenjangan (Gap), dan Sasaran SMART</div>
         </div>
 
-        <div class="flex flex-col gap-4 my-auto py-2">
-          <!-- Target 1 -->
-          <div class="bg-gradient-to-r from-red-950/40 via-slate-900/80 to-slate-900/60 border-l-4 border-l-red-500 border border-white/10 rounded-xl p-4 flex items-center justify-between">
-            <div class="max-w-3xl">
-              <div class="flex items-center gap-2 text-red-400 font-extrabold text-sm mb-1">
-                <span>🎯 TARGET 1:</span> LEAD TIME FOLLOW UP PART LENGKAP &le; 2 HARI
+        <div class="flex flex-col gap-3 my-auto py-1">
+          <!-- Top Row: Kondisi Ideal vs The Gap -->
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Kondisi Ideal -->
+            <div class="bg-emerald-950/20 border border-emerald-500/40 rounded-xl p-3.5">
+              <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-xs mb-2">
+                <span>🎯</span> KONDISI IDEAL (TARGET BENGKEL)
               </div>
-              <p class="text-xs md:text-sm text-slate-300">
-                100% unit kendaraan yang status seluruh part-nya sudah tiba lengkap di gudang (ATA) <strong>WAJIB di-follow up oleh SA maksimal H+2</strong> untuk mencegah part menginap lama di rak bengkel.
-              </p>
+              <ul class="space-y-1.5 text-xs text-slate-200">
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-400 font-bold">✓</span>
+                  <span><strong>Distribusi Otomatis:</strong> 1x input form langsung menyalurkan data order ke sheet SA tanpa ketik ulang.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-400 font-bold">✓</span>
+                  <span><strong>Zero Dead-Stock:</strong> Part tiba lengkap langsung direspon &amp; di-follow up cepat ke konsumen.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-400 font-bold">✓</span>
+                  <span><strong>Visibilitas Revenue:</strong> Nilai penjualan part SOP harian terpantau transparan dan terukur seketika.</span>
+                </li>
+              </ul>
             </div>
-            <div class="text-right pl-4">
-              <span class="text-2xl font-black text-red-400">&le; 2 Hari</span>
-              <div class="text-[11px] text-slate-400 font-semibold">Maksimal Respon</div>
+
+            <!-- The Gap -->
+            <div class="bg-slate-900/80 border border-sky-500/40 rounded-xl p-3.5 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center gap-2 text-sky-400 font-extrabold text-xs mb-2">
+                  <span>⚡</span> THE GAP (KESENJANGAN KRITIS)
+                </div>
+                <p class="text-xs text-sky-100 leading-relaxed">
+                  Ketiadaan platform terintegrasi real-time antara Partman &amp; SA, serta ketiadaan Sistem Peringatan Dini (Early Warning) otomatis saat part tiba di gudang.
+                </p>
+              </div>
+              <div class="mt-2 text-[11px] text-sky-300 font-semibold">
+                Kesenjangan inilah yang dijembatani melalui penetapan 3 Target Kaizen di bawah ini.
+              </div>
             </div>
           </div>
 
-          <!-- Target 2 -->
-          <div class="bg-gradient-to-r from-blue-950/40 via-slate-900/80 to-slate-900/60 border-l-4 border-l-blue-500 border border-white/10 rounded-xl p-4 flex items-center justify-between">
-            <div class="max-w-3xl">
-              <div class="flex items-center gap-2 text-blue-400 font-extrabold text-sm mb-1">
-                <span>🎯 TARGET 2:</span> ZERO RE-TYPING &amp; 100% DISTRIBUSI ORDER OTOMATIS
-              </div>
-              <p class="text-xs md:text-sm text-slate-300">
-                Partman <strong>cukup 1x input Form Order</strong>; sistem secara otomatis menyalurkan data multi-item part ke sheet monitoring masing-masing SA secara instan tanpa ketik ulang manual.
+          <!-- Bottom Row: 3 Target SMART -->
+          <div class="grid grid-cols-3 gap-3">
+            <!-- Target 1 -->
+            <div class="bg-gradient-to-br from-red-950/40 to-slate-900 border-l-4 border-l-red-500 border border-white/10 rounded-xl p-3">
+              <div class="text-xs font-black text-red-400 mb-1">TARGET 1: LEAD TIME &le; H+2</div>
+              <div class="text-lg font-black text-white mb-1">&le; 2 Hari Kerja</div>
+              <p class="text-[11px] text-slate-300 leading-snug">
+                100% unit part lengkap WAJIB mendapatkan Follow Up 1 maksimal H+2 sejak part tiba di gudang.
               </p>
             </div>
-            <div class="text-right pl-4">
-              <span class="text-2xl font-black text-blue-400">1-Click</span>
-              <div class="text-[11px] text-slate-400 font-semibold">Auto-Dispatch</div>
-            </div>
-          </div>
 
-          <!-- Target 3 -->
-          <div class="bg-gradient-to-r from-emerald-950/40 via-slate-900/80 to-slate-900/60 border-l-4 border-l-emerald-500 border border-white/10 rounded-xl p-4 flex items-center justify-between">
-            <div class="max-w-3xl">
-              <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-sm mb-1">
-                <span>🎯 TARGET 3:</span> 100% VISIBILITAS PART REVENUE &amp; JOB DONE REAL-TIME
-              </div>
-              <p class="text-xs md:text-sm text-slate-300">
-                Menyediakan dashboard rekapitulasi Job Done harian yang menampilkan akumulasi nilai penjualan part SOP (Part Revenue) secara akurat tanpa perlu menunggu tutup buku bulanan.
+            <!-- Target 2 -->
+            <div class="bg-gradient-to-br from-blue-950/40 to-slate-900 border-l-4 border-l-blue-500 border border-white/10 rounded-xl p-3">
+              <div class="text-xs font-black text-blue-400 mb-1">TARGET 2: 100% AUTO-DISPATCH</div>
+              <div class="text-lg font-black text-white mb-1">Zero Re-Typing</div>
+              <p class="text-[11px] text-slate-300 leading-snug">
+                Partman cukup 1x input form; data multi-item otomatis mengalir ke sheet masing-masing SA.
               </p>
             </div>
-            <div class="text-right pl-4">
-              <span class="text-2xl font-black text-emerald-400">Real-Time</span>
-              <div class="text-[11px] text-slate-400 font-semibold">Transparan 100%</div>
+
+            <!-- Target 3 -->
+            <div class="bg-gradient-to-br from-emerald-950/40 to-slate-900 border-l-4 border-l-emerald-500 border border-white/10 rounded-xl p-3">
+              <div class="text-xs font-black text-emerald-400 mb-1">TARGET 3: PART REVENUE</div>
+              <div class="text-lg font-black text-white mb-1">100% Real-Time</div>
+              <p class="text-[11px] text-slate-300 leading-snug">
+                Rekap Job Done dan total omset part murni terpantau seketika tanpa tunggu akhir bulan.
+              </p>
             </div>
           </div>
         </div>
 
-        <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
+        <div class="pt-2 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
           <span>Target terukur ini menjadi kompas utama dalam merancang sistem penanggulangan digital.</span>
-          <span class="text-white font-bold">Toyota Business Practice Step 3</span>
+          <span class="text-white font-bold">Agung Toyota Gianyar</span>
         </div>
       </div>
 
-      <!-- ==================== SLIDE 5: LANGKAH 4 ==================== -->
+      <!-- ==================== SLIDE 5: ANALYZE ROOT CAUSE ==================== -->
       <div class="slide" id="slide-5">
         <div class="flex items-center justify-between border-b border-white/10 pb-3">
           <div class="flex items-center gap-3">
-            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 4</span>
-            <h2 class="text-xl font-black text-white">ANALYZE ROOT CAUSE (ANALISIS AKAR MASALAH)</h2>
+            <h2 class="text-xl font-black text-white">ANALYZE ROOT CAUSE</h2>
           </div>
           <div class="text-xs text-slate-400 font-semibold">Metode Analisis 5-Why (Mencari Sumber Masalah)</div>
         </div>
@@ -454,16 +466,15 @@
 
         <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
           <span>Akar masalah ditemukan: bukan pada kelalaian individu, melainkan ketiadaan sistem yang proaktif.</span>
-          <span class="text-white font-bold">Toyota Business Practice Step 4</span>
+          <span class="text-white font-bold">Agung Toyota Gianyar</span>
         </div>
       </div>
 
-      <!-- ==================== SLIDE 6: LANGKAH 5 ==================== -->
+      <!-- ==================== SLIDE 6: DEVELOP COUNTERMEASURES ==================== -->
       <div class="slide" id="slide-6">
         <div class="flex items-center justify-between border-b border-white/10 pb-3">
           <div class="flex items-center gap-3">
-            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 5</span>
-            <h2 class="text-xl font-black text-white">DEVELOP COUNTERMEASURES (PENANGGULANGAN)</h2>
+            <h2 class="text-xl font-black text-white">DEVELOP COUNTERMEASURES</h2>
           </div>
           <div class="text-xs text-slate-400 font-semibold">3 Pilar Penanggulangan Berbasis Multi-Tier Early Warning</div>
         </div>
@@ -535,16 +546,15 @@
 
         <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
           <span>Kombinasi 3 pilar ini menyelesaikan masalah hulu (order) hingga hilir (revenue).</span>
-          <span class="text-white font-bold">Toyota Business Practice Step 5</span>
+          <span class="text-white font-bold">Agung Toyota Gianyar</span>
         </div>
       </div>
 
-      <!-- ==================== SLIDE 7: LANGKAH 6 ==================== -->
+      <!-- ==================== SLIDE 7: SEE COUNTERMEASURES THROUGH ==================== -->
       <div class="slide" id="slide-7">
         <div class="flex items-center justify-between border-b border-white/10 pb-3">
           <div class="flex items-center gap-3">
-            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 6</span>
-            <h2 class="text-xl font-black text-white">SEE COUNTERMEASURES THROUGH (PELAKSANAAN)</h2>
+            <h2 class="text-xl font-black text-white">SEE COUNTERMEASURES THROUGH</h2>
           </div>
           <div class="text-xs text-slate-400 font-semibold">Implementasi Nyata Sistem di Agung Toyota Gianyar</div>
         </div>
@@ -609,16 +619,15 @@
 
         <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
           <span>Aplikasi telah diuji coba dan digunakan secara nyata dalam operasional harian bengkel.</span>
-          <span class="text-white font-bold">Toyota Business Practice Step 6</span>
+          <span class="text-white font-bold">Agung Toyota Gianyar</span>
         </div>
       </div>
 
-      <!-- ==================== SLIDE 8: LANGKAH 7 ==================== -->
+      <!-- ==================== SLIDE 8: EVALUATE RESULTS & PROCESSES ==================== -->
       <div class="slide" id="slide-8">
         <div class="flex items-center justify-between border-b border-white/10 pb-3">
           <div class="flex items-center gap-3">
-            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 7</span>
-            <h2 class="text-xl font-black text-white">EVALUATE RESULTS &amp; PROCESSES (EVALUASI)</h2>
+            <h2 class="text-xl font-black text-white">EVALUATE RESULTS &amp; PROCESSES</h2>
           </div>
           <div class="text-xs text-slate-400 font-semibold">Hasil Terukur: Perbandingan Sebelum vs Sesudah Kaizen</div>
         </div>
@@ -670,16 +679,15 @@
 
         <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
           <span>Hasil menunjukkan perbaikan signifikan baik pada efisiensi kerja maupun pencegahan dead stock.</span>
-          <span class="text-white font-bold">Toyota Business Practice Step 7</span>
+          <span class="text-white font-bold">Agung Toyota Gianyar</span>
         </div>
       </div>
 
-      <!-- ==================== SLIDE 9: LANGKAH 8 ==================== -->
+      <!-- ==================== SLIDE 9: STANDARDIZE & YOKOTEN ==================== -->
       <div class="slide" id="slide-9">
         <div class="flex items-center justify-between border-b border-white/10 pb-3">
           <div class="flex items-center gap-3">
-            <span class="bg-[#e60012] text-white text-xs font-black px-3 py-1 rounded-md">LANGKAH 8</span>
-            <h2 class="text-xl font-black text-white">STANDARDIZE &amp; YOKOTEN (STANDARISASI &amp; REPLIKASI)</h2>
+            <h2 class="text-xl font-black text-white">STANDARDIZE &amp; YOKOTEN</h2>
           </div>
           <div class="text-xs text-slate-400 font-semibold">Menjaga Keberlanjutan &amp; Peluang Penyebaran Inovasi</div>
         </div>
@@ -740,7 +748,7 @@
 
         <div class="pt-3 border-t border-white/10 text-xs text-slate-400 flex items-center justify-between">
           <span>Inovasi yang sukses distandarisasi dan disebarluaskan adalah hakikat sejati dari Kaizen Toyota.</span>
-          <span class="text-white font-bold">Toyota Business Practice Step 8</span>
+          <span class="text-white font-bold">Agung Toyota Gianyar</span>
         </div>
       </div>
 
