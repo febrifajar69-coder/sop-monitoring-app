@@ -2826,7 +2826,6 @@ async function markOrderJobDone(domPrefix) {
     }
   }
 }
-}
 
 /**
  * Menghapus pesanan jika batal order langsung dari kartu No Pol
@@ -4312,24 +4311,38 @@ function initAuth() {
       const matched = STATE.users.find((u) => u.username.toLowerCase() === authUser.username.toLowerCase());
       if (matched) {
         STATE.currentUser = matched;
-        if (loginOverlay) loginOverlay.classList.add('hidden');
-        updateProfileBanner(matched);
-        applyUserRolePermissions();
+        if (loginOverlay) {
+          loginOverlay.classList.add('hidden');
+          loginOverlay.style.display = 'none';
+        }
+        try {
+          updateProfileBanner(matched);
+          applyUserRolePermissions();
+        } catch (e) {}
       } else {
         localStorage.removeItem('SOP_AUTH_USER');
         STATE.currentUser = null;
-        if (loginOverlay) loginOverlay.classList.remove('hidden');
+        if (loginOverlay) {
+          loginOverlay.classList.remove('hidden');
+          loginOverlay.style.display = 'flex';
+        }
         applyUserRolePermissions();
       }
     } catch (e) {
       localStorage.removeItem('SOP_AUTH_USER');
       STATE.currentUser = null;
-      if (loginOverlay) loginOverlay.classList.remove('hidden');
+      if (loginOverlay) {
+        loginOverlay.classList.remove('hidden');
+        loginOverlay.style.display = 'flex';
+      }
       applyUserRolePermissions();
     }
   } else {
     STATE.currentUser = null;
-    if (loginOverlay) loginOverlay.classList.remove('hidden');
+    if (loginOverlay) {
+      loginOverlay.classList.remove('hidden');
+      loginOverlay.style.display = 'flex';
+    }
     applyUserRolePermissions();
   }
 
@@ -4381,33 +4394,46 @@ function handleUserLogin(event) {
 
   if (matched) {
     STATE.currentUser = matched;
-    localStorage.setItem('SOP_AUTH_USER', JSON.stringify(matched));
+    try {
+      localStorage.setItem('SOP_AUTH_USER', JSON.stringify(matched));
+    } catch (e) {}
 
     if (errorMsg) errorMsg.style.display = 'none';
     const loginOverlay = document.getElementById('loginModalOverlay');
-    if (loginOverlay) loginOverlay.classList.add('hidden');
+    if (loginOverlay) {
+      loginOverlay.classList.add('hidden');
+      loginOverlay.style.display = 'none';
+    }
 
-    updateProfileBanner(matched);
-    applyUserRolePermissions();
-    showToast(`👋 Selamat datang, ${matched.name}! Login berhasil.`);
+    try {
+      updateProfileBanner(matched);
+      applyUserRolePermissions();
+      showToast(`👋 Selamat datang, ${matched.name}! Login berhasil.`);
+    } catch (err) {
+      console.warn('Post-login UI update:', err);
+    }
 
-    // Arahkan ke tab yang relevan sesuai izin role
-    const perm = getUserPermissions(matched);
-    if (perm.canFormOrder) {
-      switchMainTab('partman');
-    } else {
-      switchMainTab('monitoring');
-      if (matched.role.startsWith('SA_')) {
-        const targetSa = matched.role.replace('SA_', '');
-        if (window.SOP_CONFIG && window.SOP_CONFIG.SA_SHEETS.includes(targetSa)) {
-          selectSaMonitoringTab(targetSa);
-        }
+    try {
+      // Arahkan ke tab yang relevan sesuai izin role
+      const perm = getUserPermissions(matched);
+      if (perm.canFormOrder) {
+        switchMainTab('partman');
       } else {
-        const u = matched.username.toLowerCase();
-        if (['ajs', 'ayu', 'fik', 'wbn', 'other'].includes(u)) {
-          selectSaMonitoringTab(u.toUpperCase());
+        switchMainTab('monitoring');
+        if (matched.role.startsWith('SA_')) {
+          const targetSa = matched.role.replace('SA_', '');
+          if (window.SOP_CONFIG && window.SOP_CONFIG.SA_SHEETS.includes(targetSa)) {
+            selectSaMonitoringTab(targetSa);
+          }
+        } else {
+          const u = matched.username.toLowerCase();
+          if (['ajs', 'ayu', 'fik', 'wbn', 'other'].includes(u)) {
+            selectSaMonitoringTab(u.toUpperCase());
+          }
         }
       }
+    } catch (err) {
+      console.warn('Switch tab post-login:', err);
     }
   } else {
     if (errorMsg) {
@@ -4431,6 +4457,7 @@ function handleLogout() {
   const loginOverlay = document.getElementById('loginModalOverlay');
   if (loginOverlay) {
     loginOverlay.classList.remove('hidden');
+    loginOverlay.style.display = 'flex';
     const uInput = document.getElementById('loginUsernameInput');
     const pInput = document.getElementById('loginPasswordInput');
     const errMsg = document.getElementById('loginErrorMessage');
