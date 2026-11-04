@@ -20,14 +20,21 @@ const STATE = {
   jobDoneItemsCache: [],
   jobDoneGroupedList: [],
   users: [
-    { username: 'admin', password: 'admin123', name: 'Febri Fajar Rachmadani (Admin)', role: 'ADMIN_PARTMAN', roleName: 'Admin & Partman' },
-    { username: 'febri', password: 'admin123', name: 'Febri Fajar Rachmadani (FEB)', role: 'ADMIN_PARTMAN', roleName: 'Admin & Partman' },
+    { username: 'feb', password: 'admin123', name: 'FEBRI RACHMADANI', role: 'ADMIN_PARTMAN', roleName: 'Admin & Partman' },
+    { username: 'admin', password: 'admin123', name: 'FEBRI RACHMADANI', role: 'ADMIN_PARTMAN', roleName: 'Admin & Partman' },
+    { username: 'febri', password: 'admin123', name: 'FEBRI RACHMADANI', role: 'ADMIN_PARTMAN', roleName: 'Admin & Partman' },
+    { username: 'and', password: 'kabeng123', name: 'I NENGAH ANDIKA', role: 'KABENG', roleName: 'Kepala Bengkel' },
     { username: 'kabeng', password: 'kabeng123', name: 'Kepala Bengkel', role: 'KABENG', roleName: 'Kepala Bengkel' },
+    { username: 'ajs', password: 'ajs123', name: 'AJUS RUDIANTO', role: 'SA_AJS', roleName: 'Service Advisor (AJS)' },
+    { username: 'ayu', password: 'ayu123', name: 'KOMANG AYU WARDANI', role: 'SA_AYU', roleName: 'Service Advisor (AYU)' },
+    { username: 'fik', password: 'fik123', name: 'MUHAMAT TAUFIK', role: 'SA_FIK', roleName: 'Service Advisor (FIK)' },
+    { username: 'wbn', password: 'wbn123', name: 'BUANA PARDA', role: 'SA_WBN', roleName: 'Service Advisor (WBN)' },
+    { username: 'other', password: 'other123', name: 'Service Advisor OTHER', role: 'SA_OTHER', roleName: 'Service Advisor (OTHER)' },
+    { username: 'ptw', password: 'admin123', name: 'PUTU WIRAWAN', role: 'ADMIN_PARTMAN', roleName: 'Admin & Partman' },
     { username: 'sa_ajs', password: 'ajs123', name: 'Service Advisor AJS', role: 'SA_AJS', roleName: 'Service Advisor (AJS)' },
     { username: 'sa_ayu', password: 'ayu123', name: 'Service Advisor AYU', role: 'SA_AYU', roleName: 'Service Advisor (AYU)' },
     { username: 'sa_fik', password: 'fik123', name: 'Service Advisor FIK', role: 'SA_FIK', roleName: 'Service Advisor (FIK)' },
-    { username: 'sa_wbn', password: 'wbn123', name: 'Service Advisor WBN', role: 'SA_WBN', roleName: 'Service Advisor (WBN)' },
-    { username: 'sa_other', password: 'other123', name: 'Service Advisor OTHER', role: 'SA_OTHER', roleName: 'Service Advisor (OTHER)' }
+    { username: 'sa_wbn', password: 'wbn123', name: 'Service Advisor WBN', role: 'SA_WBN', roleName: 'Service Advisor (WBN)' }
   ],
   partItems: [],
   monitoringBySheet: {
@@ -4371,23 +4378,32 @@ function handleUserLogin(event) {
     (u) => u && u.username && u.username.toLowerCase() === username && String(u.password) === String(password)
   );
 
-  // 2. Fallback cerdas untuk akun Admin (mendukung username 'admin' maupun 'febri')
-  if (!matched && (username === 'admin' || username === 'febri')) {
-    const adminUser = STATE.users.find((u) => u && ['admin', 'febri'].includes(u.username.toLowerCase()));
+  // 2. Fallback cerdas untuk akun Admin (mendukung username 'feb', 'admin', maupun 'febri')
+  if (!matched && ['feb', 'admin', 'febri'].includes(username)) {
+    const adminUser = STATE.users.find((u) => u && ['feb', 'admin', 'febri'].includes(u.username.toLowerCase()));
     if (adminUser) {
       if (password === 'admin123' || password === 'admin' || String(password) === String(adminUser.password)) {
         matched = adminUser;
       }
     } else {
-      // Jika list kosong dari server, tetap izinkan login admin bawaan
       if (password === 'admin123' || password === 'admin') {
         matched = {
-          username: 'admin',
+          username: username,
           password: 'admin123',
-          name: 'Febri Fajar Rachmadani (Admin)',
+          name: 'FEBRI RACHMADANI',
           role: 'ADMIN_PARTMAN',
           roleName: 'Admin & Partman'
         };
+      }
+    }
+  }
+
+  // 3. Fallback cerdas untuk Kepala Bengkel (mendukung username 'and' maupun 'kabeng')
+  if (!matched && ['and', 'kabeng'].includes(username)) {
+    const kbUser = STATE.users.find((u) => u && ['and', 'kabeng'].includes(u.username.toLowerCase()));
+    if (kbUser) {
+      if (password === 'kabeng123' || password === 'and123' || String(password) === String(kbUser.password)) {
+        matched = kbUser;
       }
     }
   }
