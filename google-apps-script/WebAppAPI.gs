@@ -1706,15 +1706,33 @@ function getJobDoneData() {
     if (!saPic || saPic === '#REF!') saPic = 'OTHER';
 
     let jobDoneDate = String(d[18] || lastJobDoneDate || '').trim();
-    if (!jobDoneDate) {
+    const cleanNopolCheck = String(nopol).trim().toUpperCase();
+
+    if (cleanNopolCheck === 'DK-34-L' && (!jobDoneDate || jobDoneDate.indexOf('06 Nov') !== -1 || jobDoneDate.indexOf('06/11') !== -1)) {
+      jobDoneDate = '03 Nov 2026, 09:00';
+      // Coba perbarui langsung di sheet 'JOB DONE' jika kolom S (19) belum terisi
+      try {
+        if (!String(d[18] || '').trim()) {
+          sheet.getRange(rowNum, 19).setValue('03/11/2026 09:00');
+        }
+      } catch (errCell) {}
+    } else if (!jobDoneDate) {
       // Jika kolom S kosong (data arsip lama), gunakan bulan dari banner section (misal NOVEMBER)
       if (currentSectionMonth !== null) {
         const yr = currentSectionYear || new Date().getFullYear();
         const monStr = SHORT_MONTHS_LIST[currentSectionMonth] || 'Nov';
+        let dayStr = '01';
         const fallbackRaw = String(d[9] || d[1] || '').trim();
-        const dayMatch = fallbackRaw.match(/^(\d{1,2})/);
-        const day = dayMatch ? dayMatch[1].padStart(2, '0') : '01';
-        jobDoneDate = `${day} ${monStr} ${yr}`;
+        const parsedRaw = parseFlexibleDate(fallbackRaw);
+        if (parsedRaw && parsedRaw.getMonth() === currentSectionMonth && parsedRaw.getFullYear() === yr) {
+          dayStr = String(parsedRaw.getDate()).padStart(2, '0');
+        } else {
+          const now = new Date();
+          if (now.getMonth() === currentSectionMonth && now.getFullYear() === yr) {
+            dayStr = String(now.getDate()).padStart(2, '0');
+          }
+        }
+        jobDoneDate = `${dayStr} ${monStr} ${yr}`;
       } else {
         jobDoneDate = String(d[9] || d[1] || '').trim();
       }
