@@ -1159,7 +1159,7 @@ function buildSopLembar1Html(data, addPageBreak) {
         </tfoot>
       </table>
 
-      <div style="margin-bottom:6px;font-size:10.5px;">
+      <div class="sop-print-note" style="margin:8px 0 6px 0;font-size:14px;font-weight:800;letter-spacing:0.03em;">
         <strong>NOTE :</strong> ${escapeHtml(data.formNote || (data.dpStatus === 'NOT FIX' ? '' : data.dpStatus) || '-')}
       </div>
 
@@ -1340,7 +1340,7 @@ function buildSopLembar2Html(data) {
         </tfoot>
       </table>
 
-      <div style="font-size:9.5px;margin-bottom:3px;">
+      <div class="sop-print-note" style="margin:6px 0 5px 0;font-size:14px;font-weight:800;letter-spacing:0.03em;">
         <strong>KETERANGAN :</strong> ${escapeHtml(data.formNote || '')}${data.dpStatus && data.dpStatus !== 'NOT FIX' ? ` &nbsp; (Status Pembayaran: <strong>${escapeHtml(data.dpStatus)}</strong>)` : ''}
       </div>
 
@@ -2973,7 +2973,7 @@ function printOrderFromMonitoring(grp) {
     orderNo: grp.orderNo,
     dpStatus: grp.dp || 'LUNAS',
     lokasiNote: grp.note || '',
-    formNote: '',
+    formNote: grp.note || '',
     fu1: grp.followUp1 || '',
     fu2: grp.followUp2 || '',
     fu3: grp.followUp3 || '',

@@ -1254,6 +1254,14 @@ body {
   text-decoration: underline;
 }
 
+.sop-print-note {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.03em;
+  margin: 7px 0 6px 0;
+  color: #000;
+}
+
 .sop-company-kop {
   font-weight: 800;
   font-size: 11px;
