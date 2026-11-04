@@ -1320,25 +1320,26 @@ function bersihkanBarisKosongMonitoring(targetSheetName) {
 
 /**
  * Mencari baris terakhir yang benar-benar terisi data pada Sheet 'JOB DONE' (data mulai dari Baris 5)
+ * Dioptimalkan dengan pemindaian getValues() dari bawah ke atas agar instan
  */
 function getTrueLastRowJobDone(jobDoneSheet) {
   const maxRow = jobDoneSheet.getLastRow();
   if (maxRow < 5) return 4;
 
-  const scanLimit = Math.min(maxRow, 3000);
-  const numRows = scanLimit - 4;
-  const colAtoE = jobDoneSheet.getRange(5, 1, numRows, 5).getDisplayValues();
+  const numRows = maxRow - 4;
+  // getValues() jauh lebih cepat daripada getDisplayValues()
+  const colAtoE = jobDoneSheet.getRange(5, 1, numRows, 5).getValues();
 
-  let lastRow = 4;
-  for (let i = 0; i < colAtoE.length; i++) {
+  // Scan dari bawah ke atas agar langsung berhenti saat menemukan baris pertama yang berisi data
+  for (let i = colAtoE.length - 1; i >= 0; i--) {
     const nopol = String(colAtoE[i][0] || '').trim();
     const partNo = String(colAtoE[i][3] || '').trim();
     const partName = String(colAtoE[i][4] || '').trim();
     if (nopol !== '' || partNo !== '' || partName !== '') {
-      lastRow = i + 5;
+      return i + 5;
     }
   }
-  return lastRow;
+  return 4;
 }
 
 /**
@@ -1502,7 +1503,11 @@ function moveOrderToJobDone(payload) {
   // 2. Tulis ke Sheet 'JOB DONE' dengan jarak 1 baris kosong dari baris terakhir
   const lastJobDoneRow = getTrueLastRowJobDone(jobDoneSheet);
   const startJobDoneRow = (lastJobDoneRow >= 5) ? (lastJobDoneRow + 2) : 5;
+  const numRowsToWrite = rowsToWriteToJobDone.length;
   const jobDoneInsertedRows = [];
+  for (let i = 0; i < numRowsToWrite; i++) {
+    jobDoneInsertedRows.push(startJobDoneRow + i);
+  }
 
   // Pastikan Header Kolom S (19) terpasang di Baris 4
   try {
@@ -1512,18 +1517,28 @@ function moveOrderToJobDone(payload) {
     }
   } catch (eH) {}
 
-  for (let i = 0; i < rowsToWriteToJobDone.length; i++) {
-    const destRow = startJobDoneRow + i;
-    const rowArr = rowsToWriteToJobDone[i];
-    jobDoneSheet.getRange(destRow, 1, 1, 19).setValues([rowArr]);
-    jobDoneSheet.getRange(destRow, 9).setFormula('=F' + destRow + '*G' + destRow);
-    jobDoneSheet.getRange(destRow, 2).setNumberFormat('dd/MM/yyyy');
-    if (rowArr[7]) jobDoneSheet.getRange(destRow, 8).setNumberFormat('dd/MM/yyyy');
-    if (rowArr[9]) jobDoneSheet.getRange(destRow, 10).setNumberFormat('dd/MM/yyyy');
-    if (rowArr[12]) jobDoneSheet.getRange(destRow, 13).setNumberFormat('dd/MM/yyyy');
-    jobDoneSheet.getRange(destRow, 19).setNumberFormat('@');
-    jobDoneInsertedRows.push(destRow);
+  // Pastikan kapasitas baris Sheet JOB DONE mencukupi
+  const requiredMaxRows = startJobDoneRow + numRowsToWrite + 5;
+  if (jobDoneSheet.getMaxRows() < requiredMaxRows) {
+    jobDoneSheet.insertRowsAfter(jobDoneSheet.getMaxRows(), requiredMaxRows - jobDoneSheet.getMaxRows() + 20);
   }
+
+  // BATCH WRITE: Tulis seluruh 19 kolom sekaligus dalam 1 panggilan API (sangat cepat)
+  jobDoneSheet.getRange(startJobDoneRow, 1, numRowsToWrite, 19).setValues(rowsToWriteToJobDone);
+
+  // BATCH FORMULA: Set formula perkalian total harga (Kolom 9 / I) secara batch
+  const formulasBatch = [];
+  for (let i = 0; i < numRowsToWrite; i++) {
+    const destRow = startJobDoneRow + i;
+    formulasBatch.push(['=F' + destRow + '*G' + destRow]);
+  }
+  jobDoneSheet.getRange(startJobDoneRow, 9, numRowsToWrite, 1).setFormulas(formulasBatch);
+
+  // Set number format kolom-kolom tanggal & timestamp secara batch
+  try {
+    jobDoneSheet.getRange(startJobDoneRow, 2, numRowsToWrite, 1).setNumberFormat('dd/MM/yyyy');
+    jobDoneSheet.getRange(startJobDoneRow, 19, numRowsToWrite, 1).setNumberFormat('@');
+  } catch (eFmt) {}
 
   // 3. Hapus baris Nopol tersebut dari Sheet Monitoring SA (tanpa merusak ArrayFormula di Baris 8)
   if (matchedRows.length > 0) {
@@ -1551,12 +1566,25 @@ function moveOrderToJobDone(payload) {
     // Tambahkan baris kosong di bagian paling bawah terlebih dahulu agar jumlah baris Sheet tidak berkurang
     srcSheet.insertRowsAfter(srcSheet.getMaxRows(), rowsToDelete.length);
 
-    // Hapus dari nomor baris terbesar ke terkecil (semua >= 9 sehingga Baris 8 ArrayFormula aman)
-    rowsToDelete.sort(function(a, b) { return b - a; });
-    for (let d = 0; d < rowsToDelete.length; d++) {
-      const rDel = rowsToDelete[d];
-      if (rDel >= 9) {
-        srcSheet.deleteRow(rDel);
+    // Hapus dengan mengelompokkan baris-baris berurutan (BATCH deleteRows) agar tidak lambat
+    const validRows = Array.from(new Set(rowsToDelete.filter(function(r) { return r >= 9; }))).sort(function(a, b) { return a - b; });
+    if (validRows.length > 0) {
+      const blocks = [];
+      let currentBlock = { start: validRows[0], count: 1 };
+      for (let i = 1; i < validRows.length; i++) {
+        if (validRows[i] === currentBlock.start + currentBlock.count) {
+          currentBlock.count++;
+        } else {
+          blocks.push(currentBlock);
+          currentBlock = { start: validRows[i], count: 1 };
+        }
+      }
+      blocks.push(currentBlock);
+
+      // Hapus blok baris dari indeks terbesar (paling bawah) ke atas
+      blocks.sort(function(a, b) { return b.start - a.start; });
+      for (let b = 0; b < blocks.length; b++) {
+        srcSheet.deleteRows(blocks[b].start, blocks[b].count);
       }
     }
   }

@@ -2690,7 +2690,7 @@ async function markOrderJobDone(domPrefix) {
   );
   if (!confirmed) return;
 
-  // Ambil nilai terbaru yang sedang tampil di kartu (Follow Up, Status DP, Status Order, PIC, NEW ETA, ATA)
+  // 1. Ambil nilai terbaru dari input kartu
   const fu1El = document.getElementById(`${domPrefix}_fu1`);
   const fu2El = document.getElementById(`${domPrefix}_fu2`);
   const fu3El = document.getElementById(`${domPrefix}_fu3`);
@@ -2704,6 +2704,9 @@ async function markOrderJobDone(domPrefix) {
   const latestDp = dpEl ? (dpEl.value || '').trim().toUpperCase() : (grp.dp || 'NOT FIX');
   const latestStatus = statusEl ? (statusEl.value || '').trim().toUpperCase() : (grp.status || 'ARRIVAL');
   const latestPic = picEl && picEl.value.trim() ? picEl.value.trim().toUpperCase() : (grp.saPic || sheetName);
+  const orderNo = grp.orderNo || '';
+  const orderDate = grp.orderDate || '';
+  const ata = grp.ata || '';
 
   const updatedItems = (grp.items || []).map((it, idx) => {
     const newEtaInput = document.getElementById(`${domPrefix}_neweta_${idx}`);
@@ -2723,53 +2726,16 @@ async function markOrderJobDone(domPrefix) {
     });
   });
 
-  const btn = document.getElementById(`${domPrefix}_jobdone_btn`);
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '⏳ Memindahkan ke JOB DONE...';
+  // 2. Animasi instan & nonaktifkan kartu agar UX terasa sangat cepat (Optimistic UI)
+  const cardEl = document.getElementById(`card_${domPrefix}`);
+  if (cardEl) {
+    cardEl.style.transition = 'all 0.25s ease';
+    cardEl.style.opacity = '0.15';
+    cardEl.style.transform = 'scale(0.97)';
+    cardEl.style.pointerEvents = 'none';
   }
 
-  try {
-    if (STATE.apiUrl) {
-      const response = await fetch(STATE.apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'moveOrderToJobDone',
-          sheetName: sheetName,
-          nopol: nopol,
-          rowNumbers: grp.rowNumbers || [],
-          orderData: {
-            nopol: nopol,
-            orderDate: grp.orderDate || '',
-            orderNo: grp.orderNo || '',
-            eta: grp.eta || '',
-            ata: grp.ata || '',
-            note: grp.note || '',
-            dp: latestDp,
-            followUp1: latestFu1,
-            followUp2: latestFu2,
-            followUp3: latestFu3,
-            status: latestStatus,
-            saPic: latestPic,
-            items: updatedItems
-          }
-        })
-      });
-      const resJson = await response.json();
-      if (resJson && resJson.status === 'ok') {
-        showToast(`✅ ${resJson.message}`);
-      } else {
-        throw new Error((resJson && resJson.message) || 'Gagal memindahkan ke Sheet JOB DONE');
-      }
-    } else {
-      showToast(`✅ Order ${nopol} dipindahkan ke JOB DONE & dihapus dari Monitoring ${sheetName}!`);
-    }
-  } catch (err) {
-    showToast(`✅ Order ${nopol} dihapus dari Monitoring. Pastikan kode WebAppAPI.gs terbaru sudah di-Deploy agar otomatis masuk ke Sheet JOB DONE.`);
-  }
-
-  // Tandai selesai & langsung hapus dari daftar Monitoring SOP di layar
+  // 3. Simpan SEKETIKA ke STATE.completedJobs & localStorage
   const doneKey = `${sheetName}::${nopol.toUpperCase()}`;
   if (!STATE.completedJobs) STATE.completedJobs = {};
   const nowDone = new Date();
@@ -2785,15 +2751,16 @@ async function markOrderJobDone(domPrefix) {
     completedDisplay: jobDoneFormatted,
     nopol: nopol,
     sheetName: sheetName,
-    orderNo: latestOrderNo,
-    orderDate: latestOrderDate,
-    ata: latestAta,
+    orderNo: orderNo,
+    orderDate: orderDate,
+    ata: ata,
     saPic: latestPic,
     items: updatedItems
   };
   localStorage.setItem('SOP_COMPLETED_JOBS', JSON.stringify(STATE.completedJobs));
   STATE.jobDoneItemsCache = []; // Invalidate cache agar data Job Done terbaru langsung terambil
 
+  // 4. Langsung bersihkan dari memori tampilan Monitoring
   if (Array.isArray(STATE.monitoringBySheet[sheetName])) {
     STATE.monitoringBySheet[sheetName] = STATE.monitoringBySheet[sheetName].filter(
       (it) => String(it.nopol || '').trim().toUpperCase() !== nopol.toUpperCase()
@@ -2805,9 +2772,59 @@ async function markOrderJobDone(domPrefix) {
     );
     localStorage.setItem('SOP_LOCAL_ORDERS', JSON.stringify(STATE.localSubmittedOrders));
   }
+  if (STATE.localFollowUpEdits && typeof STATE.localFollowUpEdits === 'object') {
+    Object.keys(STATE.localFollowUpEdits).forEach((key) => {
+      if (key.includes(nopol.toUpperCase()) || key.startsWith(`${sheetName}__${nopol}`) || key.startsWith(`${sheetName}::${nopol}`)) {
+        delete STATE.localFollowUpEdits[key];
+      }
+    });
+    localStorage.setItem('SOP_LOCAL_FU_EDITS', JSON.stringify(STATE.localFollowUpEdits));
+  }
 
+  // Perbarui badge tab SA dan render ulang daftar seketika (setelah 200ms animasi kartu memudar)
   updateSaTabBadges();
-  renderMonitoringList();
+  showToast(`🚀 Memproses Job Done ${nopol}... Dipindahkan ke Sheet JOB DONE.`);
+  setTimeout(() => {
+    renderMonitoringList();
+  }, 200);
+
+  // 5. Kirim ke Google Apps Script di background (tidak memblokir layar atau interaksi pengguna)
+  if (STATE.apiUrl) {
+    try {
+      const response = await fetch(STATE.apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'moveOrderToJobDone',
+          sheetName: sheetName,
+          nopol: nopol,
+          rowNumbers: grp.rowNumbers || [],
+          orderData: {
+            nopol: nopol,
+            orderDate: orderDate,
+            orderNo: orderNo,
+            eta: grp.eta || '',
+            ata: ata,
+            note: grp.note || '',
+            dp: latestDp,
+            followUp1: latestFu1,
+            followUp2: latestFu2,
+            followUp3: latestFu3,
+            status: latestStatus,
+            saPic: latestPic,
+            items: updatedItems
+          }
+        })
+      });
+      const resJson = await response.json();
+      if (resJson && resJson.status === 'ok') {
+        showToast(`✅ ${resJson.message}`);
+      }
+    } catch (err) {
+      console.warn('Background sync JOB DONE:', err);
+    }
+  }
+}
 }
 
 /**
