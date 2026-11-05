@@ -1434,6 +1434,36 @@ async function fetchAllMonitoringSheets(showNotification) {
           data.items.forEach((item) => {
             const doneKey = `${item.sheetName}::${String(item.nopol || '').trim().toUpperCase()}`;
             if (STATE.completedJobs && STATE.completedJobs[doneKey]) return;
+
+            const itemNopolClean = String(item.nopol || '').trim().toUpperCase();
+            const itemPartNoClean = String(item.partNo || '').trim().toUpperCase();
+
+            // Terapkan localFollowUpEdits jika ada data ATA / NEW ETA / Follow Up yang tersimpan lokal
+            if (STATE.localFollowUpEdits) {
+              const localItem = STATE.localFollowUpEdits[`ITEM-${item.sheetName}-R${item.rowNumber}`] ||
+                                STATE.localFollowUpEdits[`ITEM-${item.sheetName}-${itemNopolClean}-${itemPartNoClean}`];
+              if (localItem) {
+                if (localItem.ata !== undefined && localItem.ata !== '') item.ata = localItem.ata;
+                if (localItem.newEta !== undefined && localItem.newEta !== '') item.newEta = localItem.newEta;
+                if (localItem.status) item.status = localItem.status;
+              }
+
+              const localGrp = STATE.localFollowUpEdits[`${item.sheetName}-${itemNopolClean}`];
+              if (localGrp) {
+                if (localGrp.orderNo !== undefined) item.orderNo = localGrp.orderNo;
+                if (localGrp.note !== undefined) item.note = localGrp.note;
+                if (localGrp.dp) item.dp = localGrp.dp;
+                if (localGrp.status && item.status !== 'ARRIVAL') item.status = localGrp.status;
+                if (localGrp.fu1 !== undefined) item.followUp1 = localGrp.fu1;
+                if (localGrp.fu2 !== undefined) item.followUp2 = localGrp.fu2;
+                if (localGrp.fu3 !== undefined) item.followUp3 = localGrp.fu3;
+                if (localGrp.fu1Date) item.fu1Date = localGrp.fu1Date;
+                if (localGrp.fu2Date) item.fu2Date = localGrp.fu2Date;
+              }
+            }
+
+            if (item.ata) item.status = 'ARRIVAL';
+
             if (STATE.monitoringBySheet[item.sheetName]) {
               STATE.monitoringBySheet[item.sheetName].push(item);
             }
@@ -1572,15 +1602,6 @@ function parseMonitoringSheetRows(sheetName, rows) {
       : null;
 
     let ataVal = localItemMeta && localItemMeta.ata !== undefined ? localItemMeta.ata : String(r[9] || '').trim();
-
-    // Validasi Integritas ATA: Part tidak mungkin tiba mendahului tanggal pemesanannya!
-    if (ataVal && orderDate) {
-      const pOrder = parseFlexibleDateToObj(orderDate);
-      const pAta = parseFlexibleDateToObj(ataVal, pOrder ? pOrder.getFullYear() : undefined);
-      if (pOrder && pAta && pAta.getTime() < pOrder.getTime()) {
-        ataVal = ''; // Kontaminasi peninggalan baris lama diabaikan
-      }
-    }
 
     items.push({
       id: itemId,
@@ -1843,11 +1864,6 @@ function groupMonitoringItemsByOrder(items) {
 
     grp.items.forEach((it) => {
       const d = parseFlexibleDateToObj(it.ata, fallbackYear);
-      // Validasi Integritas: ATA tidak boleh lebih awal dari Tanggal Order
-      if (d && orderDateObj && d.getTime() < orderDateObj.getTime()) {
-        it.ata = '';
-        return;
-      }
       if (d) {
         arrivedCount++;
         itemAtaDates.push(d);
@@ -2560,6 +2576,7 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
   const saPic = picEl ? (picEl.value || '').trim().toUpperCase() : '';
 
   // Kumpulkan NEW ETA & ATA dari setiap baris item part dalam grup ini
+  const grp = STATE.currentRenderedGroups[domPrefix];
   const itemUpdates = [];
   let hasAnyAta = false;
   rowNumbers.forEach((rNum, idx) => {
@@ -2574,20 +2591,26 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
 
     // Tiap part yang sudah ada ATA otomatis statusnya jadi 'ARRIVAL'
     const itemStatus = formattedAta ? 'ARRIVAL' : statusVal;
+    const itObj = (grp && grp.items && grp.items[idx]) ? grp.items[idx] : null;
+    const pNo = itObj ? itObj.partNo : '';
+    const pName = itObj ? itObj.partName : '';
 
-    itemUpdates.push({
-      rowNumber: rNum,
-      newEta: newEtaVal ? formatDateSlash(newEtaVal) : '',
-      ata: formattedAta,
-      status: itemStatus
-    });
-
-    STATE.localFollowUpEdits[`ITEM-${sheetName}-R${rNum}`] = {
-      nopol: nopol,
+    const upd = {
+      rowNumber: (itObj && itObj.rowNumber) ? itObj.rowNumber : rNum,
+      itemIndex: idx,
+      partNo: pNo,
+      partName: pName,
       newEta: newEtaVal ? formatDateSlash(newEtaVal) : '',
       ata: formattedAta,
       status: itemStatus
     };
+
+    itemUpdates.push(upd);
+
+    STATE.localFollowUpEdits[`ITEM-${sheetName}-R${upd.rowNumber}`] = upd;
+    if (pNo) {
+      STATE.localFollowUpEdits[`ITEM-${sheetName}-${nopol.toUpperCase()}-${pNo.toUpperCase()}`] = upd;
+    }
   });
 
   // Jika ada part yang sudah ada ATA-nya, pastikan status grup/kartu adalah 'ARRIVAL'
@@ -2600,7 +2623,6 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
     if (statusEl) statusEl.value = statusVal;
   }
 
-  const grp = STATE.currentRenderedGroups[domPrefix];
   const todayIso = formatDateInput(new Date());
 
   // Otomatis tentukan tanggal Follow Up 1 saat diisi
@@ -2645,9 +2667,21 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
   };
   localStorage.setItem('SOP_LOCAL_FU_EDITS', JSON.stringify(STATE.localFollowUpEdits));
 
+  if (grp && Array.isArray(grp.items)) {
+    grp.items.forEach((it, idx) => {
+      const upd = itemUpdates[idx];
+      if (upd) {
+        it.ata = upd.ata;
+        it.newEta = upd.newEta;
+        it.etaBo = upd.newEta;
+        if (upd.status) it.status = upd.status;
+      }
+    });
+  }
+
   const sheetItems = STATE.monitoringBySheet[sheetName] || [];
   sheetItems.forEach((it) => {
-    if (it.nopol === nopol) {
+    if (String(it.nopol || '').trim().toUpperCase() === nopol.toUpperCase()) {
       it.followUp1 = fu1;
       it.followUp2 = fu2;
       it.followUp3 = fu3;
@@ -2659,7 +2693,10 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
       if (statusVal) it.status = statusVal;
       if (saPic) it.saPic = saPic;
 
-      const matchedUpd = itemUpdates.find((u) => Number(u.rowNumber) === Number(it.rowNumber));
+      const matchedUpd = itemUpdates.find((u) =>
+        (u.partNo && it.partNo && String(u.partNo).trim().toUpperCase() === String(it.partNo).trim().toUpperCase()) ||
+        (Number(u.rowNumber) === Number(it.rowNumber))
+      );
       if (matchedUpd) {
         it.newEta = matchedUpd.newEta;
         it.etaBo = matchedUpd.newEta;
@@ -2726,6 +2763,7 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
       fu2Lbl.style.color = fu2DateVal ? '#0369a1' : '#94a3b8';
     }
     updateSaTabBadges();
+    renderMonitoringList();
     checkAndShowFu2ReminderPopup(false);
   }
 }

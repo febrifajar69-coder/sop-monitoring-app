@@ -859,28 +859,6 @@ function getMonitoringData(saFilter) {
       let rawAta = String(d[9] || '').trim();
       let rowStatus = String(d[16] || '').trim().toUpperCase();
 
-      // Validasi Integritas ATA: Part tidak mungkin tiba mendahului tanggal pemesanannya!
-      if (rawAta && orderDate) {
-        let oDateObj = (r[1] instanceof Date && !isNaN(r[1].getTime())) ? new Date(r[1].getTime()) : parseFlexibleDate(orderDate);
-        let aDateObj = (r[9] instanceof Date && !isNaN(r[9].getTime())) ? new Date(r[9].getTime()) : parseFlexibleDate(rawAta);
-        if (oDateObj && aDateObj) {
-          oDateObj.setHours(0, 0, 0, 0);
-          aDateObj.setHours(0, 0, 0, 0);
-          if (aDateObj.getTime() < oDateObj.getTime()) {
-            // Kontaminasi data baris lama terdeteksi! Bersihkan ATA & pulihkan status order
-            rawAta = '';
-            d[9] = '';
-            try {
-              sheet.getRange(rowNum, 10).clearContent();
-              if (rowStatus === 'ARRIVAL') {
-                rowStatus = 'IN PROCESS';
-                sheet.getRange(rowNum, 17).setValue('IN PROCESS');
-              }
-            } catch (eFixAta) {}
-          }
-        }
-      }
-
       // Aturan Otomatis: jika part sudah ada ATA, status ordernya otomatis jadi 'ARRIVAL'
       if (rawAta) {
         if (rowStatus !== 'ARRIVAL') {
@@ -1160,11 +1138,22 @@ function updateFollowUpBySA(payload) {
   let recordedFu1Date = '';
   let recordedFu2Date = '';
 
-  rowsToUpdate.forEach(function(rNum) {
+  rowsToUpdate.forEach(function(rNum, idx) {
     const rInt = parseInt(rNum, 10);
     if (rInt >= 9) {
       // 1. Update NEW ETA (Kolom M / 13) & ATA (Kolom J / 10) khusus untuk baris item part ini
-      const itemUpd = itemEtaAtaMap[rInt];
+      const checkVals = sheet.getRange(rInt, 4, 1, 2).getDisplayValues()[0];
+      const rPartNo = String(checkVals[0] || '').trim().toUpperCase();
+      const rPartName = String(checkVals[1] || '').trim().toUpperCase();
+
+      let itemUpd = itemEtaAtaMap[rInt];
+      if (!itemUpd && Array.isArray(payload.itemUpdates)) {
+        itemUpd = payload.itemUpdates.find(function(iu) {
+          return (iu.partNo && String(iu.partNo).trim().toUpperCase() === rPartNo) ||
+                 (iu.partName && String(iu.partName).trim().toUpperCase() === rPartName);
+        }) || payload.itemUpdates[idx];
+      }
+
       if (itemUpd) {
         if (itemUpd.ata !== undefined) {
           if (itemUpd.ata) {
@@ -1965,15 +1954,37 @@ function deleteSinglePartFromMonitoring(payload) {
 function parseFlexibleDate(str) {
   if (!str) return null;
   const s = String(str).trim();
-  // Format YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    const p = s.split('-');
-    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  if (!s || s === '-' || s === '0') return null;
+
+  // Format YYYY-MM-DD atau YYYY/MM/DD
+  if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(s)) {
+    const p = s.split(/[-/]/);
+    const d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    return isNaN(d.getTime()) ? null : d;
   }
-  // Format DD/MM/YYYY
-  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
-    const p = s.split('/');
-    return new Date(Number(p[2]), Number(p[1]) - 1, Number(p[0]));
+  // Format DD/MM/YYYY atau DD-MM-YYYY
+  if (/^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}$/.test(s)) {
+    const p = s.split(/[-/]/);
+    let yr = Number(p[2]);
+    if (yr < 100) yr += 2000;
+    const d = new Date(yr, Number(p[1]) - 1, Number(p[0]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // Format "05 Nov" atau "05 Nov 2026"
+  const mText = s.match(/^(\d{1,2})[\s\-/]+([A-Za-z]+)(?:[\s\-/]+(\d{2,4}))?$/);
+  if (mText) {
+    const day = parseInt(mText[1], 10);
+    const mStr = mText[2].toLowerCase();
+    const months = {
+      jan: 0, feb: 1, mar: 2, apr: 3, mei: 4, may: 4, jun: 5, jul: 6,
+      agu: 7, aug: 7, agt: 7, sep: 8, okt: 9, oct: 9, nov: 10, nop: 10, des: 11, dec: 11
+    };
+    if (months[mStr] !== undefined) {
+      let yr = mText[3] ? parseInt(mText[3], 10) : new Date().getFullYear();
+      if (yr < 100) yr += 2000;
+      const d = new Date(yr, months[mStr], day);
+      return isNaN(d.getTime()) ? null : d;
+    }
   }
   return null;
 }
