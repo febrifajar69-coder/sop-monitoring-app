@@ -1564,7 +1564,6 @@ function parseMonitoringSheetRows(sheetName, rows) {
       saPic = sheetName;
     }
 
-    const rowNumber = i + 8; // Perkiraan nomor baris di sheet
     const itemId = `${sheetName}-R${rowNumber}-${nopol}-${colD}`;
     const localEdit = STATE.localFollowUpEdits[itemId] || STATE.localFollowUpEdits[`${sheetName}-${nopol}`];
     const rawLocalItem = STATE.localFollowUpEdits[`ITEM-${sheetName}-R${rowNumber}`];
