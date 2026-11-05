@@ -859,6 +859,25 @@ function getMonitoringData(saFilter) {
       let rawAta = String(d[9] || '').trim();
       let rowStatus = String(d[16] || '').trim().toUpperCase();
 
+      // Validasi Integritas ATA: Part tidak mungkin tiba mendahului tanggal pemesanannya!
+      if (rawAta && orderDate) {
+        try {
+          const pOrder = parseFlexibleDate(orderDate);
+          const pAta = parseFlexibleDate(rawAta);
+          if (pOrder && pAta) {
+            const oMid = new Date(pOrder.getFullYear(), pOrder.getMonth(), pOrder.getDate()).getTime();
+            const aMid = new Date(pAta.getFullYear(), pAta.getMonth(), pAta.getDate()).getTime();
+            if (aMid < oMid) {
+              // Residu tanggal lama yang tertinggal di sel baris ini! Bersihkan langsung dari sheet
+              rawAta = '';
+              try {
+                sheet.getRange(rowNum, 10).clearContent();
+              } catch (eCl) {}
+            }
+          }
+        } catch (eDateVal) {}
+      }
+
       // Aturan Otomatis: jika part sudah ada ATA, status ordernya otomatis jadi 'ARRIVAL'
       if (rawAta) {
         if (rowStatus !== 'ARRIVAL') {
@@ -867,8 +886,9 @@ function getMonitoringData(saFilter) {
             sheet.getRange(rowNum, 17).setValue('ARRIVAL');
           } catch (eArr) {}
         }
-      } else if (!rowStatus) {
-        rowStatus = 'IN PROCESS';
+      } else if (!rowStatus || rowStatus === 'ARRIVAL') {
+        const dpVal = String(d[11] || '').trim().toUpperCase();
+        rowStatus = (dpVal === 'LUNAS' || dpVal === 'BAYAR DP' || dpVal === 'W/O DP') ? 'IN PROCESS' : 'NOT FIX';
       }
 
       items.push({
@@ -1064,24 +1084,9 @@ function updateFollowUpBySA(payload) {
   }
 
   // VALIDASI KETAT:
-  // Hanya baris yang benar-benar memiliki item part (Col D: Part No atau Col E: Part Name) yang boleh diupdate!
-  let rowsToUpdate = [];
-
-  if (requestedRows.length > 0) {
-    rowsToUpdate = requestedRows.filter(function(rInt) {
-      if (rInt < 9) return false;
-      try {
-        const checkPart = sheet.getRange(rInt, 4, 1, 2).getDisplayValues()[0];
-        const hasPart = String(checkPart[0] || '').trim() !== '' || String(checkPart[1] || '').trim() !== '';
-        return hasPart;
-      } catch (e) {
-        return true;
-      }
-    });
-  }
-
-  // Jika requestedRows kosong, scan berdasarkan targetNopol dengan validasi pemisah baris kosong
-  if (rowsToUpdate.length === 0 && targetNopol) {
+  // Cari baris-baris aktual yang benar-benar milik targetNopol di sheet agar tidak salah update jika baris bergeser
+  let matchedNopolRows = [];
+  if (targetNopol) {
     const lastRow = sheet.getLastRow();
     if (lastRow >= 9) {
       const numRows = lastRow - 8;
@@ -1102,10 +1107,27 @@ function updateFollowUpBySA(payload) {
 
         // Hanya masukkan jika nopol cocok DAN baris memiliki part no atau part name!
         if (curNopol === targetNopol && (partNo || partName)) {
-          rowsToUpdate.push(i + 9);
+          matchedNopolRows.push(i + 9);
         }
       }
     }
+  }
+
+  let rowsToUpdate = [];
+  // Jika matchedNopolRows ditemukan di sheet, SELALU prioritaskan matchedNopolRows
+  if (matchedNopolRows.length > 0) {
+    rowsToUpdate = matchedNopolRows;
+  } else if (requestedRows.length > 0) {
+    rowsToUpdate = requestedRows.filter(function(rInt) {
+      if (rInt < 9) return false;
+      try {
+        const checkPart = sheet.getRange(rInt, 4, 1, 2).getDisplayValues()[0];
+        const hasPart = String(checkPart[0] || '').trim() !== '' || String(checkPart[1] || '').trim() !== '';
+        return hasPart;
+      } catch (e) {
+        return true;
+      }
+    });
   }
 
   if (rowsToUpdate.length === 0) {
@@ -1225,7 +1247,30 @@ function updateFollowUpBySA(payload) {
       } else {
         const existingAta = String(sheet.getRange(rInt, 10).getDisplayValue() || '').trim();
         if (existingAta) {
-          partHasAta = true;
+          const rowOrderDate = String(sheet.getRange(rInt, 2).getDisplayValue() || '').trim();
+          if (rowOrderDate) {
+            try {
+              const pO = parseFlexibleDate(rowOrderDate);
+              const pA = parseFlexibleDate(existingAta);
+              if (pO && pA) {
+                const oMid = new Date(pO.getFullYear(), pO.getMonth(), pO.getDate()).getTime();
+                const aMid = new Date(pA.getFullYear(), pA.getMonth(), pA.getDate()).getTime();
+                if (aMid < oMid) {
+                  // Residu baris lama, bersihkan!
+                  sheet.getRange(rInt, 10).clearContent();
+                  partHasAta = false;
+                } else {
+                  partHasAta = true;
+                }
+              } else {
+                partHasAta = true;
+              }
+            } catch (e) {
+              partHasAta = true;
+            }
+          } else {
+            partHasAta = true;
+          }
         }
       }
 

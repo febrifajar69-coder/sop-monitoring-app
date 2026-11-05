@@ -84,7 +84,22 @@ function initApp() {
     const savedLocalOrders = localStorage.getItem('SOP_LOCAL_ORDERS');
     if (savedLocalOrders) STATE.localSubmittedOrders = JSON.parse(savedLocalOrders);
     const savedFuEdits = localStorage.getItem('SOP_LOCAL_FU_EDITS');
-    if (savedFuEdits) STATE.localFollowUpEdits = JSON.parse(savedFuEdits);
+    if (savedFuEdits) {
+      STATE.localFollowUpEdits = JSON.parse(savedFuEdits);
+      // Bersihkan key lama yang tidak terikat nopol (format rentan pergeseran baris: ITEM-SA-R...)
+      if (STATE.localFollowUpEdits && typeof STATE.localFollowUpEdits === 'object') {
+        let dirty = false;
+        Object.keys(STATE.localFollowUpEdits).forEach((k) => {
+          if (/^ITEM-[^-]+-R\d+$/.test(k)) {
+            delete STATE.localFollowUpEdits[k];
+            dirty = true;
+          }
+        });
+        if (dirty) {
+          localStorage.setItem('SOP_LOCAL_FU_EDITS', JSON.stringify(STATE.localFollowUpEdits));
+        }
+      }
+    }
     const savedCompleted = localStorage.getItem('SOP_COMPLETED_JOBS');
     if (savedCompleted) STATE.completedJobs = JSON.parse(savedCompleted);
     const savedDeletedParts = localStorage.getItem('SOP_DELETED_PART_ITEMS');
@@ -1440,11 +1455,18 @@ async function fetchAllMonitoringSheets(showNotification) {
 
             // Terapkan localFollowUpEdits jika ada data ATA / NEW ETA / Follow Up yang tersimpan lokal
             if (STATE.localFollowUpEdits) {
-              const localItem = STATE.localFollowUpEdits[`ITEM-${item.sheetName}-R${item.rowNumber}`] ||
-                                STATE.localFollowUpEdits[`ITEM-${item.sheetName}-${itemNopolClean}-${itemPartNoClean}`];
+              const localItemByNopolPart = STATE.localFollowUpEdits[`ITEM-${item.sheetName}-${itemNopolClean}-${itemPartNoClean}`];
+              const localItemByNopolRow = STATE.localFollowUpEdits[`ITEM-${item.sheetName}-${itemNopolClean}-R${item.rowNumber}`];
+              const legacyItemByRow = STATE.localFollowUpEdits[`ITEM-${item.sheetName}-R${item.rowNumber}`];
+
+              // HANYA terapkan data item lokal jika NOPOL cocok persis!
+              const localItem = localItemByNopolPart ||
+                                localItemByNopolRow ||
+                                (legacyItemByRow && legacyItemByRow.nopol && legacyItemByRow.nopol.toUpperCase() === itemNopolClean ? legacyItemByRow : null);
+
               if (localItem) {
-                if (localItem.ata !== undefined && localItem.ata !== '') item.ata = localItem.ata;
-                if (localItem.newEta !== undefined && localItem.newEta !== '') item.newEta = localItem.newEta;
+                if (localItem.ata !== undefined) item.ata = localItem.ata;
+                if (localItem.newEta !== undefined) item.newEta = localItem.newEta;
                 if (localItem.status) item.status = localItem.status;
               }
 
@@ -1462,7 +1484,19 @@ async function fetchAllMonitoringSheets(showNotification) {
               }
             }
 
-            if (item.ata) item.status = 'ARRIVAL';
+            // Validasi Integritas ATA: Part tidak mungkin tiba mendahului tanggal pemesanannya!
+            if (item.ata && item.orderDate) {
+              if (!isValidAtaDate(item.ata, item.orderDate)) {
+                item.ata = '';
+              }
+            }
+
+            if (item.ata) {
+              item.status = 'ARRIVAL';
+            } else if (item.status === 'ARRIVAL') {
+              const itemDp = String(item.dp || '').trim().toUpperCase();
+              item.status = (itemDp === 'LUNAS' || itemDp === 'BAYAR DP' || itemDp === 'W/O DP') ? 'IN PROCESS' : 'NOT FIX';
+            }
 
             if (STATE.monitoringBySheet[item.sheetName]) {
               STATE.monitoringBySheet[item.sheetName].push(item);
@@ -1596,12 +1630,22 @@ function parseMonitoringSheetRows(sheetName, rows) {
 
     const itemId = `${sheetName}-R${rowNumber}-${nopol}-${colD}`;
     const localEdit = STATE.localFollowUpEdits[itemId] || STATE.localFollowUpEdits[`${sheetName}-${nopol}`];
-    const rawLocalItem = STATE.localFollowUpEdits[`ITEM-${sheetName}-R${rowNumber}`];
-    const localItemMeta = (rawLocalItem && (!rawLocalItem.nopol || rawLocalItem.nopol.toUpperCase() === nopol.toUpperCase()))
-      ? rawLocalItem
-      : null;
+    const nopolClean = nopol.toUpperCase();
+    const colDClean = (colD || '').toUpperCase();
+    const localItemMeta = STATE.localFollowUpEdits[`ITEM-${sheetName}-${nopolClean}-${colDClean}`] ||
+                          STATE.localFollowUpEdits[`ITEM-${sheetName}-${nopolClean}-R${rowNumber}`] ||
+                          (STATE.localFollowUpEdits[`ITEM-${sheetName}-R${rowNumber}`] &&
+                           STATE.localFollowUpEdits[`ITEM-${sheetName}-R${rowNumber}`].nopol &&
+                           STATE.localFollowUpEdits[`ITEM-${sheetName}-R${rowNumber}`].nopol.toUpperCase() === nopolClean
+                            ? STATE.localFollowUpEdits[`ITEM-${sheetName}-R${rowNumber}`]
+                            : null);
 
     let ataVal = localItemMeta && localItemMeta.ata !== undefined ? localItemMeta.ata : String(r[9] || '').trim();
+
+    // Validasi Integritas ATA: Part tidak mungkin tiba mendahului tanggal pemesanannya!
+    if (ataVal && orderDate && !isValidAtaDate(ataVal, orderDate)) {
+      ataVal = '';
+    }
 
     items.push({
       id: itemId,
@@ -1738,6 +1782,26 @@ function parseFlexibleDateToObj(dateStr, fallbackYear) {
 }
 
 /**
+ * Memvalidasi apakah tanggal ATA logis terhadap tanggal pemesanan (Order Date).
+ * Part tidak mungkin tiba mendahului tanggal pemesanannya.
+ * Hari yang sama (same-day) atau setelahnya adalah VALID.
+ */
+function isValidAtaDate(ataStr, orderDateStr) {
+  if (!ataStr) return false;
+  if (!orderDateStr) return true;
+  const pOrder = parseFlexibleDateToObj(orderDateStr);
+  const pAta = parseFlexibleDateToObj(ataStr, pOrder ? pOrder.getFullYear() : undefined);
+  if (pOrder && pAta) {
+    const dOrderMidnight = new Date(pOrder.getFullYear(), pOrder.getMonth(), pOrder.getDate()).getTime();
+    const dAtaMidnight = new Date(pAta.getFullYear(), pAta.getMonth(), pAta.getDate()).getTime();
+    if (dAtaMidnight < dOrderMidnight) {
+      return false; // Tanggal ATA mendahului tanggal order (residu baris lama)
+    }
+  }
+  return true;
+}
+
+/**
  * Mengubah format tanggal apa pun menjadi "dd MMM" (contoh: "10 Okt", "15 Aug")
  */
 function formatShortDayMonth(dateStr, fallbackYear) {
@@ -1863,6 +1927,9 @@ function groupMonitoringItemsByOrder(items) {
     let arrivedCount = 0;
 
     grp.items.forEach((it) => {
+      if (it.ata && !isValidAtaDate(it.ata, grp.orderDate)) {
+        it.ata = '';
+      }
       const d = parseFlexibleDateToObj(it.ata, fallbackYear);
       if (d) {
         arrivedCount++;
@@ -2596,6 +2663,8 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
     const pName = itObj ? itObj.partName : '';
 
     const upd = {
+      sheetName: sheetName,
+      nopol: nopol.toUpperCase(),
       rowNumber: (itObj && itObj.rowNumber) ? itObj.rowNumber : rNum,
       itemIndex: idx,
       partNo: pNo,
@@ -2607,7 +2676,8 @@ async function saveFollowUpGroup(sheetName, nopol, rowNumbers, domPrefix) {
 
     itemUpdates.push(upd);
 
-    STATE.localFollowUpEdits[`ITEM-${sheetName}-R${upd.rowNumber}`] = upd;
+    // Kunci simpanan lokal WAJIB terikat dengan NOPOL agar tidak tertukar saat nomor baris bergeser
+    STATE.localFollowUpEdits[`ITEM-${sheetName}-${nopol.toUpperCase()}-R${upd.rowNumber}`] = upd;
     if (pNo) {
       STATE.localFollowUpEdits[`ITEM-${sheetName}-${nopol.toUpperCase()}-${pNo.toUpperCase()}`] = upd;
     }
