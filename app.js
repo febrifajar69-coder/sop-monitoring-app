@@ -1654,8 +1654,11 @@ const MONTH_LOOKUP_MAP = {
  */
 function parseFlexibleDateToObj(dateStr, fallbackYear) {
   if (!dateStr) return null;
-  const s = String(dateStr).trim();
+  let s = String(dateStr).trim();
   if (!s || s === '-' || s === '0') return null;
+
+  // Bersihkan penanda jam/menit/detik jika ada (contoh: ", 00:00" atau " 14:30:00" atau "T00:00:00")
+  s = s.replace(/T\d{2}:\d{2}:\d{2}.*$/, '').replace(/,\s*\d{1,2}:\d{2}(?::\d{2})?.*$/, '').replace(/\s+\d{1,2}:\d{2}(?::\d{2})?.*$/, '').trim();
 
   const defaultYear = fallbackYear || new Date().getFullYear();
 
@@ -1714,6 +1717,33 @@ function formatShortDayMonth(dateStr, fallbackYear) {
   const day = String(d.getDate()).padStart(2, '0');
   const mon = SHORT_MONTHS_ID[d.getMonth()] || '';
   return `${day} ${mon}`;
+}
+
+/**
+ * Format tanggal ringkas format dd Mon yy (contoh: 05 Nov 26)
+ */
+function formatDateShortDdMonYy(dateStr, fallbackYear) {
+  const s = String(dateStr || '').trim();
+  if (!s || s === '-') return '-';
+  const d = parseFlexibleDateToObj(s, fallbackYear);
+  if (d) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const mon = SHORT_MONTHS_ID[d.getMonth()] || '';
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${day} ${mon} ${yy}`;
+  }
+  // Fallback jika sudah berformat "03 Nov" tanpa tahun
+  const match = s.match(/^(\d{1,2})\s*([A-Za-z]{3,})/);
+  if (match) {
+    const day = match[1].padStart(2, '0');
+    const mAlpha = match[2].toLowerCase();
+    const mIdx = MONTH_LOOKUP_MAP ? MONTH_LOOKUP_MAP[mAlpha] : undefined;
+    const mon = (mIdx !== undefined && SHORT_MONTHS_ID[mIdx]) ? SHORT_MONTHS_ID[mIdx] : match[2];
+    const yr = fallbackYear || new Date().getFullYear();
+    const yy = String(yr).slice(-2);
+    return `${day} ${mon} ${yy}`;
+  }
+  return s;
 }
 
 /**
@@ -6015,22 +6045,14 @@ function renderJobDoneReport() {
 
     g.jobDoneDateObj = doneDateObj;
 
-    // Format tampilan tanggal Job Done
-    if (g.jobDoneDate && g.jobDoneDate.includes(':')) {
-      // Sudah ada jam (misal: 02/11/2026 14:30 atau ISO)
-      if (doneDateObj) {
-        const d = String(doneDateObj.getDate()).padStart(2, '0');
-        const m = SHORT_MONTHS_ID[doneDateObj.getMonth()];
-        const y = doneDateObj.getFullYear();
-        const hr = String(doneDateObj.getHours()).padStart(2, '0');
-        const mn = String(doneDateObj.getMinutes()).padStart(2, '0');
-        doneDateDisplay = `${d} ${m} ${y}, ${hr}:${mn}`;
-      }
-    } else if (doneDateObj) {
+    // Format tampilan tanggal Job Done: dd Mon yy (contoh: 05 Nov 26)
+    if (doneDateObj) {
       const d = String(doneDateObj.getDate()).padStart(2, '0');
       const m = SHORT_MONTHS_ID[doneDateObj.getMonth()];
-      const y = doneDateObj.getFullYear();
-      doneDateDisplay = `${d} ${m} ${y}`;
+      const yy = String(doneDateObj.getFullYear()).slice(-2);
+      doneDateDisplay = `${d} ${m} ${yy}`;
+    } else {
+      doneDateDisplay = formatDateShortDdMonYy(g.jobDoneDate, year);
     }
 
     g.jobDoneDateDisplay = doneDateDisplay || '-';
@@ -6126,10 +6148,14 @@ function renderJobDoneReport() {
             ${escapeHtml(g.saPic || 'OTHER')}
           </span>
         </td>
-        <td style="text-align:center;color:#334155;font-weight:600;vertical-align:middle;">${escapeHtml(g.orderDate || '-')}</td>
-        <td style="text-align:center;color:#334155;font-weight:600;vertical-align:middle;">${escapeHtml(g.ata || '-')}</td>
-        <td style="text-align:center;vertical-align:middle;">
-          <span style="display:inline-flex;align-items:center;gap:4px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;padding:4px 9px;border-radius:6px;font-weight:700;font-size:0.78rem;white-space:nowrap;">
+        <td style="text-align:center;color:#334155;font-weight:600;vertical-align:middle;white-space:nowrap;">
+          ${escapeHtml(formatDateShortDdMonYy(g.orderDate, year))}
+        </td>
+        <td style="text-align:center;color:#334155;font-weight:600;vertical-align:middle;white-space:nowrap;">
+          ${escapeHtml(formatDateShortDdMonYy(g.ata, year))}
+        </td>
+        <td style="text-align:center;vertical-align:middle;white-space:nowrap;">
+          <span style="display:inline-flex;align-items:center;gap:4px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;padding:4px 9px;border-radius:6px;font-weight:700;font-size:0.8rem;white-space:nowrap;">
             <span>📅</span> ${escapeHtml(g.jobDoneDateDisplay)}
           </span>
         </td>
@@ -6180,7 +6206,8 @@ function openJobDonePartsModal(encodedNopol) {
 
   if (nopolEl) nopolEl.textContent = grp.nopol;
   if (metaEl) {
-    metaEl.innerHTML = `SA PIC: <strong>${escapeHtml(grp.saPic)}</strong> &bull; Tgl Order: <strong>${escapeHtml(grp.orderDate || '-')}</strong> &bull; Tgl Selesai: <strong>${escapeHtml(grp.jobDoneDateDisplay)}</strong>`;
+    const orderDisplay = formatDateShortDdMonYy(grp.orderDate, STATE.jobDoneReportYear);
+    metaEl.innerHTML = `SA PIC: <strong>${escapeHtml(grp.saPic)}</strong> &bull; Tgl Order: <strong>${escapeHtml(orderDisplay || '-')}</strong> &bull; Tgl Selesai: <strong>${escapeHtml(grp.jobDoneDateDisplay)}</strong>`;
   }
   if (statCount) statCount.textContent = `${grp.items.length} Item Part Selesai`;
   if (statTotal) statTotal.textContent = `Total Omset: ${formatRupiah(grp.totalOmset)}`;
@@ -6233,7 +6260,9 @@ function copyJobDoneTableToClipboard() {
   tsv += `NO\tNO. POLISI\tSA / PIC\tTGL ORDER\tTGL ATA\tTGL JOB DONE\tJUMLAH PART\tTOTAL OMSET (RP)\tSTATUS\n`;
 
   list.forEach((g, idx) => {
-    tsv += `${idx + 1}\t${g.nopol}\t${g.saPic || 'OTHER'}\t${g.orderDate || '-'}\t${g.ata || '-'}\t${g.jobDoneDateDisplay}\t${g.items.length} Part\t${g.totalOmset}\tJOB DONE\n`;
+    const ord = formatDateShortDdMonYy(g.orderDate, year);
+    const ata = formatDateShortDdMonYy(g.ata, year);
+    tsv += `${idx + 1}\t${g.nopol}\t${g.saPic || 'OTHER'}\t${ord}\t${ata}\t${g.jobDoneDateDisplay}\t${g.items.length} Part\t${g.totalOmset}\tJOB DONE\n`;
   });
 
   const totalOmset = list.reduce((s, g) => s + (g.totalOmset || 0), 0);
