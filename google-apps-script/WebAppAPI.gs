@@ -90,6 +90,10 @@ function doPost(e) {
       return jsonResponse(deleteCancelledOrderFromMonitoring(payload));
     }
 
+    if (action === 'deleteSinglePartItem') {
+      return jsonResponse(deleteSinglePartFromMonitoring(payload));
+    }
+
     if (action === 'saveEmailSettings') {
       return jsonResponse(saveEmailConfig(payload.emailConfig, payload.enableAutoTrigger));
     }
@@ -1867,6 +1871,94 @@ function deleteCancelledOrderFromMonitoring(payload) {
   return {
     status: 'ok',
     message: 'Pesanan ' + targetNopol + ' berhasil dihapus dari Sheet ' + sheetName + '.'
+  };
+}
+
+/**
+ * Menghapus satu item part dari pesanan pada Sheet Monitoring SA
+ * jika customer batal memesan item part tersebut.
+ */
+function deleteSinglePartFromMonitoring(payload) {
+  const sheetName = String(payload.sheetName || '').trim().toUpperCase();
+  const targetNopol = String(payload.nopol || '').trim().toUpperCase();
+  const targetRow = parseInt(payload.rowNumber, 10);
+  const targetPartNo = String(payload.partNo || '').trim().toUpperCase();
+  const targetPartName = String(payload.partName || '').trim().toUpperCase();
+
+  if (VALID_SA_SHEETS.indexOf(sheetName) === -1 || !targetNopol) {
+    return { status: 'error', message: 'Sheet atau Nomor Polisi tidak valid.' };
+  }
+
+  const ssMon = SpreadsheetApp.openById(SPREADSHEET_MONITORING_ID);
+  const sheet = ssMon.getSheetByName(sheetName);
+  if (!sheet) {
+    return { status: 'error', message: 'Sheet ' + sheetName + ' tidak ditemukan.' };
+  }
+
+  const lastRow = getTrueLastDataRow(sheet, false);
+  if (lastRow < 9) {
+    return { status: 'error', message: 'Tidak ada baris data pada sheet.' };
+  }
+
+  // 1. Cek baris target jika rowNumber diberikan
+  let actualRowToDelete = -1;
+  if (targetRow >= 9 && targetRow <= lastRow) {
+    const rowVals = sheet.getRange(targetRow, 1, 1, 5).getDisplayValues()[0];
+    const rNopol = String(rowVals[0] || '').trim().toUpperCase();
+    const rPartNo = String(rowVals[3] || '').trim().toUpperCase();
+    const rPartName = String(rowVals[4] || '').trim().toUpperCase();
+
+    if ((!rNopol || rNopol === targetNopol) &&
+        (!targetPartNo || rPartNo === targetPartNo || rPartName === targetPartName)) {
+      actualRowToDelete = targetRow;
+    }
+  }
+
+  // 2. Jika tidak cocok di rowNumber, scan seluruh baris nopol tersebut
+  if (actualRowToDelete === -1) {
+    const numRows = lastRow - 8;
+    const disp = sheet.getRange(9, 1, numRows, 5).getDisplayValues();
+    let currentNopol = '';
+    for (let i = 0; i < disp.length; i++) {
+      const rNum = i + 9;
+      const rNopol = String(disp[i][0] || '').trim().toUpperCase();
+      const rPartNo = String(disp[i][3] || '').trim().toUpperCase();
+      const rPartName = String(disp[i][4] || '').trim().toUpperCase();
+
+      if (rNopol) currentNopol = rNopol;
+      if (currentNopol === targetNopol) {
+        if ((targetPartNo && rPartNo === targetPartNo) || (targetPartName && rPartName === targetPartName)) {
+          actualRowToDelete = rNum;
+          break;
+        }
+      }
+    }
+  }
+
+  if (actualRowToDelete < 9) {
+    return { status: 'error', message: 'Baris item part untuk ' + targetNopol + ' tidak ditemukan di Spreadsheet.' };
+  }
+
+  // Sebelum hapus baris: jika baris yang dihapus berisi NOPOL di kolom A,
+  // dan baris berikutnya adalah part dari nopol yang sama tapi kolom A-nya kosong,
+  // salin informasi header (NOPOL, Tanggal Order, No Order) ke baris berikutnya.
+  if (actualRowToDelete < lastRow) {
+    const currHeader = sheet.getRange(actualRowToDelete, 1, 1, 3).getDisplayValues()[0];
+    const nextHeader = sheet.getRange(actualRowToDelete + 1, 1, 1, 3).getDisplayValues()[0];
+    const nextPart = sheet.getRange(actualRowToDelete + 1, 4, 1, 2).getDisplayValues()[0];
+    const nextHasPart = String(nextPart[0] || '').trim() || String(nextPart[1] || '').trim();
+
+    if (currHeader[0] && !nextHeader[0] && nextHasPart) {
+      sheet.getRange(actualRowToDelete + 1, 1, 1, 3).setValues([[currHeader[0], currHeader[1], currHeader[2]]]);
+    }
+  }
+
+  sheet.insertRowsAfter(sheet.getMaxRows(), 1);
+  sheet.deleteRow(actualRowToDelete);
+
+  return {
+    status: 'ok',
+    message: 'Item part ' + (targetPartNo || targetPartName || '') + ' (' + targetNopol + ') berhasil dihapus dari Spreadsheet.'
   };
 }
 

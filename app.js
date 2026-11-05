@@ -47,6 +47,7 @@ const STATE = {
   localSubmittedOrders: [],
   localFollowUpEdits: {},
   completedJobs: {},
+  deletedPartItems: {},
   currentRenderedGroups: {},
   emailConfig: {
     reminderDays: 7,
@@ -86,6 +87,8 @@ function initApp() {
     if (savedFuEdits) STATE.localFollowUpEdits = JSON.parse(savedFuEdits);
     const savedCompleted = localStorage.getItem('SOP_COMPLETED_JOBS');
     if (savedCompleted) STATE.completedJobs = JSON.parse(savedCompleted);
+    const savedDeletedParts = localStorage.getItem('SOP_DELETED_PART_ITEMS');
+    if (savedDeletedParts) STATE.deletedPartItems = JSON.parse(savedDeletedParts);
     const savedEmailCfg = localStorage.getItem('SOP_EMAIL_CONFIG');
     if (savedEmailCfg) STATE.emailConfig = JSON.parse(savedEmailCfg);
   } catch (e) {
@@ -1530,6 +1533,12 @@ function parseMonitoringSheetRows(sheetName, rows) {
       continue;
     }
 
+    const rowNumber = i + 8; // Perkiraan nomor baris di sheet
+    const partKey = `${sheetName}::${nopol.toUpperCase()}::${String(colD || '').trim().toUpperCase()}`;
+    if (STATE.deletedPartItems && (STATE.deletedPartItems[`${partKey}::${rowNumber}`] || STATE.deletedPartItems[partKey])) {
+      continue;
+    }
+
     let orderDate = '';
     let orderNo = '';
     if (colA) {
@@ -1609,6 +1618,9 @@ function mergeLocalOrdersIntoSheets() {
   STATE.localSubmittedOrders.forEach((loc) => {
     const doneKey = `${loc.sheetName}::${String(loc.nopol || '').trim().toUpperCase()}`;
     if (STATE.completedJobs && STATE.completedJobs[doneKey]) return;
+
+    const partKey = `${loc.sheetName}::${String(loc.nopol || '').trim().toUpperCase()}::${String(loc.partNo || '').trim().toUpperCase()}`;
+    if (STATE.deletedPartItems && STATE.deletedPartItems[partKey]) return;
 
     const list = STATE.monitoringBySheet[loc.sheetName];
     if (!list) return;
@@ -2300,8 +2312,9 @@ function renderMonitoringList() {
                     <th style="text-align:center;">Qty</th>
                     <th style="text-align:right;">Subtotal</th>
                     <th style="text-align:center;">ETA Awal</th>
-                    <th style="width:120px;color:#b45309;">NEW ETA</th>
-                    <th style="width:120px;color:#15803d;">ATA</th>
+                    <th style="width:115px;color:#b45309;">NEW ETA</th>
+                    <th style="width:115px;color:#15803d;">ATA</th>
+                    ${perm.isViewerOnly ? '' : '<th style="width:34px;text-align:center;" title="Hapus part ini jika customer batal order">🗑</th>'}
                   </tr>
                 </thead>
                 <tbody>
@@ -2315,7 +2328,7 @@ function renderMonitoringList() {
                     const dispEtaAwal = formatShortDayMonth(it.eta || grp.eta) || '-';
 
                     return `
-                    <tr>
+                    <tr id="${safeDomId}_part_row_${i}">
                       <td>${i + 1}</td>
                       <td>
                         <div style="font-family:monospace;font-weight:700;font-size:0.78rem;color:#475569;">${escapeHtml(it.partNo)}</div>
@@ -2390,6 +2403,21 @@ function renderMonitoringList() {
                           </div>
                         `}
                       </td>
+                      ${perm.isViewerOnly ? '' : `
+                      <td style="text-align:center;vertical-align:middle;padding:2px 4px;">
+                        <button
+                          type="button"
+                          id="${safeDomId}_del_part_${i}"
+                          onclick="deleteSinglePartItem('${safeDomId}', ${i})"
+                          title="Hapus part ini (${escapeHtml(it.partNo || it.partName)}) jika customer batal order"
+                          style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;color:#ef4444;font-size:0.8rem;cursor:pointer;padding:0;transition:all 0.15s ease;"
+                          onmouseover="this.style.background='#fee2e2';this.style.borderColor='#f87171';this.style.transform='scale(1.08)';"
+                          onmouseout="this.style.background='#fef2f2';this.style.borderColor='#fecaca';this.style.transform='scale(1)';"
+                        >
+                          🗑
+                        </button>
+                      </td>
+                      `}
                     </tr>
                   `;
                   }).join('')}
@@ -2983,6 +3011,134 @@ async function cancelAndDeleteOrder(domPrefixOrSheetName, explicitNopol, explici
     if (typeof checkAndShowFu1ReminderPopup === 'function') checkAndShowFu1ReminderPopup(false);
     if (typeof checkAndShowNotFixPopup === 'function') checkAndShowNotFixPopup(false);
     if (typeof checkAndShowFu2ReminderPopup === 'function') checkAndShowFu2ReminderPopup(false);
+  }
+}
+
+/**
+ * Menghapus satu item part dari pesanan pada Monitoring SA
+ * jika customer batal memesan salah satu part yang sudah dibuat di Form Order.
+ */
+async function deleteSinglePartItem(domPrefix, itemIndex) {
+  const perm = getUserPermissions(STATE.currentUser);
+  if (perm.isViewerOnly) {
+    showToast('⚠️ Mode Viewer: Akun Anda tidak memiliki izin untuk menghapus part.', true);
+    return;
+  }
+
+  const grp = STATE.currentRenderedGroups && STATE.currentRenderedGroups[domPrefix];
+  if (!grp || !grp.items || !grp.items[itemIndex]) {
+    showToast('⚠️ Data item part tidak ditemukan.', true);
+    return;
+  }
+
+  const it = grp.items[itemIndex];
+  const partLabel = (it.partNo ? `${it.partNo} - ` : '') + (it.partName || 'Part');
+
+  // Jika ini adalah satu-satunya part pada pesanan tersebut
+  if (grp.items.length <= 1) {
+    const okAll = window.confirm(
+      `Part "${partLabel}" adalah SATU-SATUNYA part pada pesanan ${grp.nopol}.\n\n` +
+      `Menghapus part ini akan membatalkan dan menghapus SELURUH pesanan No. Polisi ${grp.nopol}.\n\n` +
+      `Apakah Anda yakin ingin membatalkan & menghapus seluruh pesanan ${grp.nopol}?`
+    );
+    if (!okAll) return;
+    return cancelAndDeleteOrder(domPrefix);
+  }
+
+  const ok = window.confirm(
+    `Apakah Anda yakin ingin MENGHAPUS item part ini dari pesanan ${grp.nopol}?\n\n` +
+    `• Part: ${partLabel}\n` +
+    `• Qty: ${it.qty} (Subtotal: ${formatRupiah(it.total)})\n\n` +
+    `Gunakan fitur ini jika pelanggan tidak jadi memesan part ini.`
+  );
+  if (!ok) return;
+
+  const btnDel = document.getElementById(`${domPrefix}_del_part_${itemIndex}`);
+  if (btnDel) {
+    btnDel.disabled = true;
+    btnDel.innerHTML = '⏳';
+  }
+
+  const rowEl = document.getElementById(`${domPrefix}_part_row_${itemIndex}`);
+  if (rowEl) {
+    rowEl.style.transition = 'all 0.3s ease';
+    rowEl.style.opacity = '0.3';
+  }
+
+  const sheetName = grp.sheetName;
+  const nopol = grp.nopol;
+  const targetRowNumber = it.rowNumber;
+  const targetPartNo = String(it.partNo || '').trim();
+  const targetPartName = String(it.partName || '').trim();
+
+  // 1. Catat ke STATE.deletedPartItems dan localStorage agar tidak muncul kembali
+  const partKey = `${sheetName}::${nopol.toUpperCase()}::${targetPartNo.toUpperCase()}`;
+  const partKeyWithRow = `${partKey}::${targetRowNumber}`;
+  if (!STATE.deletedPartItems) STATE.deletedPartItems = {};
+  STATE.deletedPartItems[partKeyWithRow] = true;
+  STATE.deletedPartItems[partKey] = true;
+  try {
+    localStorage.setItem('SOP_DELETED_PART_ITEMS', JSON.stringify(STATE.deletedPartItems));
+  } catch (e) {}
+
+  // 2. Hapus dari STATE.monitoringBySheet[sheetName]
+  if (Array.isArray(STATE.monitoringBySheet[sheetName])) {
+    const idx = STATE.monitoringBySheet[sheetName].findIndex(
+      (m) => String(m.nopol || '').trim().toUpperCase() === nopol.toUpperCase() &&
+             ((targetRowNumber && m.rowNumber === targetRowNumber) ||
+              (targetPartNo && String(m.partNo || '').trim().toUpperCase() === targetPartNo.toUpperCase()) ||
+              (targetPartName && String(m.partName || '').trim().toUpperCase() === targetPartName.toUpperCase()))
+    );
+    if (idx !== -1) {
+      STATE.monitoringBySheet[sheetName].splice(idx, 1);
+    }
+  }
+
+  // 3. Hapus dari STATE.localSubmittedOrders jika ada
+  if (Array.isArray(STATE.localSubmittedOrders)) {
+    const locIdx = STATE.localSubmittedOrders.findIndex(
+      (m) => m.sheetName === sheetName &&
+             String(m.nopol || '').trim().toUpperCase() === nopol.toUpperCase() &&
+             ((targetRowNumber && m.rowNumber === targetRowNumber) ||
+              (targetPartNo && String(m.partNo || '').trim().toUpperCase() === targetPartNo.toUpperCase()) ||
+              (targetPartName && String(m.partName || '').trim().toUpperCase() === targetPartName.toUpperCase()))
+    );
+    if (locIdx !== -1) {
+      STATE.localSubmittedOrders.splice(locIdx, 1);
+      localStorage.setItem('SOP_LOCAL_ORDERS', JSON.stringify(STATE.localSubmittedOrders));
+    }
+  }
+
+  // 4. Kirim request hapus baris part ke Google Apps Script (WebAppAPI.gs)
+  try {
+    if (STATE.apiUrl) {
+      const resp = await fetch(STATE.apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'deleteSinglePartItem',
+          sheetName: sheetName,
+          nopol: nopol,
+          rowNumber: targetRowNumber,
+          partNo: targetPartNo,
+          partName: targetPartName
+        })
+      });
+      const resJson = await resp.json().catch(() => null);
+      if (resJson && resJson.status === 'ok') {
+        showToast(`🗑 ${resJson.message || `Part ${partLabel} berhasil dihapus dari pesanan.`}`);
+      } else {
+        showToast(`🗑 Part ${partLabel} berhasil dihapus dari pesanan.`);
+      }
+    } else {
+      showToast(`🗑 Part ${partLabel} berhasil dihapus dari pesanan.`);
+    }
+  } catch (err) {
+    console.error('Error deleting single part item:', err);
+    showToast(`🗑 Part ${partLabel} telah dihapus dari pesanan.`);
+  } finally {
+    updateSaTabBadges();
+    renderMonitoringList();
   }
 }
 
